@@ -38,7 +38,7 @@ La página **cuenta una historia en tiempo real**: desde el 20 de octubre de 202
 - El ID se recuerda en el navegador y aparece en los registros ("OPERADOR NTT-0451 CONECTADO").
 
 ### RF-04 Escritorio de módulos
-- Tras el acceso hay un menú principal con los módulos, navegable con teclado (flechas, números, teclas F) y con ratón.
+- Tras el acceso hay un menú principal con los módulos, navegable con teclado (flechas, números 1–8 como atajo principal, teclas F1–F4 y F6–F9) y con ratón. F5, F11 y F12 no se interceptan para no romper el navegador.
 - Barra de estado permanente: fecha y hora de la agencia, fase actual, ramas en colisión, nivel de alerta.
 
 ### RF-05 Módulos
@@ -55,6 +55,7 @@ La página **cuenta una historia en tiempo real**: desde el 20 de octubre de 202
 
 ### RF-06 Conflicto entre tierras
 - Algunas tierras (no todas) al acercarse a su pareja de colisión **intentan destruirla** para sobrevivir.
+- Los ataques empiezan en los últimos días de la aproximación (antes del contacto) y siguen durante las hostilidades.
 - Esto se ve en el mapa (trayectorias de misiles y armas en rojo), en el monitor de colisiones (estado "HOSTILIDADES") y en los registros y expedientes.
 - Otras tierras eligen evacuar, aislarse, negociar o simplemente no se enteran.
 
@@ -64,14 +65,17 @@ A medida que avanza la fase, el sistema se deteriora:
 - Texto corrupto aleatorio en registros (determinista por día).
 - Módulos que se caen o responden con errores a partir de umbrales.
 - Alarmas sonoras más frecuentes (si el sonido está activado).
+- La terminal tarda más en responder: latencia deliberada que crece con la fase.
+- El zumbido del transformador y el ventilador del equipo suben de volumen con la intensidad (si el sonido está activado).
 
 ### RF-08 Colapso final (16 de diciembre)
-- Al entrar, en vez del arranque normal aparece un **mensaje de error fatal** a pantalla completa en ámbar con texto blanco.
+- Justo después del encendido del monitor (sin arranque previo) aparece un **mensaje de error fatal** a pantalla completa: franja de título en ámbar con texto oscuro y cuerpo en texto blanco sobre fondo oscuro con marco ámbar (contraste de RNF-03).
 - Tras el error, el sistema puede mostrar un arranque fallido, un mapa con el Árbol desintegrándose y un último mensaje.
-- Configurable: el texto del error final y lo que se puede hacer después.
+- Configurable: el texto del error final (con el número de ramas tomado de la configuración, no escrito a mano) y los comandos que la terminal acepta después.
+- Los días posteriores al colapso (p. ej. 25/12) la pantalla final muestra además cuántos días han pasado desde el colapso.
 
 ### RF-09 Configuración centralizada
-- Un único archivo **`config.js`** contiene: nombre y siglas de la agencia, logo ASCII, paleta de colores, fechas de los hitos, zona horaria, intensidad de efectos CRT, sonido, velocidad de escritura, modo depuración.
+- Un único archivo **`config.js`** contiene: nombre y siglas de la agencia, logo ASCII, paleta de colores, fechas de los hitos, zona horaria, parámetros de los efectos CRT (WebGL y respaldo CSS), encendido y apagado, sonido y ambiente, velocidad de escritura, latencia de la terminal, modo depuración.
 - El contenido del mundo vive en **`data/`** (tierras, eventos, mensajes, documentos), separado de la lógica.
 - Cambiar un color o una fecha **no requiere tocar ningún otro archivo**.
 
@@ -79,13 +83,25 @@ A medida que avanza la fase, el sistema se deteriora:
 - Con `?fecha=AAAA-MM-DD` en la URL (si `config.debug.permitirFechaURL` es `true`) se simula cualquier día.
 - Permite revisar todas las fases sin esperar.
 
+### RF-11 Encendido y apagado del monitor
+- Al cargar, el monitor está apagado. Se enciende con un botón de encendido en el marco del monitor o con cualquier tecla; esa interacción es la que habilita el audio (RNF-05).
+- El botón de encendido debe ser **muy evidente** en escritorio y en móvil: grande, rotulado, con LED, con una indicación visible en el marco ("PULSE ⏻ O CUALQUIER TECLA") y un área táctil de al menos 64 px.
+- Encendido: punto brillante → línea horizontal que se expande → la imagen se abre en vertical → el fósforo se calienta y el contenido aparece.
+- Apagado al cerrar sesión (`salir` o botón de encendido): la imagen se contrae a una línea, luego a un punto, y queda un resplandor residual que se desvanece.
+- Con `prefers-reduced-motion`, ambos se reducen a un fundido corto.
+
+### RF-12 Simulación física del CRT
+- La pantalla se ve a través de un tubo CRT simulado: curvatura de barril, persistencia del fósforo (estela al moverse o borrarse el contenido), aberración cromática leve en los bordes, ruido de señal y parpadeo.
+- Si WebGL no está disponible, se usan los efectos CSS de respaldo y la página sigue funcionando sin errores.
+- Todos los parámetros se ajustan en `config.efectos` y se pueden desactivar.
+
 ## 4. Requisitos no funcionales
 
 - **RNF-01 Sin dependencias ni compilación**: HTML, CSS y JavaScript puros. Se abre con doble clic en `index.html` y también funciona en GitHub Pages.
 - **RNF-02 Rendimiento**: 60 fps en el mapa en un portátil común; los efectos CRT no deben bloquear la escritura.
 - **RNF-03 Accesibilidad**: respetar `prefers-reduced-motion` (desactiva parpadeos fuertes y glitches); opción en config para desactivar efectos; contraste suficiente del texto blanco sobre el fondo.
 - **RNF-04 Responsivo**: usable en móvil (sin teclado físico: menú táctil y botones de comando rápidos).
-- **RNF-05 Sonido**: generado con Web Audio, nunca automático; se activa tras la primera interacción y se puede silenciar.
+- **RNF-05 Sonido**: generado con Web Audio, nunca automático; se activa tras la primera interacción (el encendido del monitor, RF-11) y se puede silenciar. Incluye el ambiente del equipo: zumbido del transformador y ventilador.
 - **RNF-06 Determinismo**: todo lo "aleatorio" usa un PRNG con semilla derivada de la fecha.
 - **RNF-07 Originalidad**: la agencia, su símbolo, terminología y personajes son originales. No usar nombres, logos ni elementos de franquicias existentes.
 
@@ -101,3 +117,6 @@ A medida que avanza la fase, el sistema se deteriora:
 - [ ] Al menos 4 tierras son hostiles y atacan a su pareja en algún momento.
 - [ ] Todos los módulos se pueden usar solo con teclado.
 - [ ] Recargar el mismo día da exactamente el mismo estado.
+- [ ] Sin WebGL (o con `efectos.webgl: false`) la página funciona con los efectos CSS de respaldo y sin errores en consola.
+- [ ] La terminal tarda visiblemente más en responder en fase 4 que en fase 1.
+- [ ] El error fatal es legible: el texto cumple un contraste de al menos 4.5:1.

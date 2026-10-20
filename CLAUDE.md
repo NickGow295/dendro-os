@@ -18,7 +18,7 @@ Si una tarea contradice la spec, **no improvisar**: señalarlo y proponer el cam
 - **Colores, logo, fechas, textos de la agencia y efectos solo en `config.js`.** Ningún color literal en CSS o JS: usar variables CSS (`var(--ambar)`) o `DENDRO_CONFIG.colores`.
 - **Contenido del mundo solo en `data/`.**
 - **La cronología es una función pura de la fecha** (`cronologia.js`). Nada de la historia global depende de `localStorage`, `Math.random()` ni de visitas previas. Aleatoriedad = PRNG con semilla de la fecha.
-- **Paleta**: interfaz ámbar, texto blanco, tierras azules, ramas del árbol blancas, armas y hostilidades rojas.
+- **Paleta**: interfaz ámbar, texto blanco, tierras azules, ramas del árbol blancas, armas y hostilidades rojas. Nunca texto blanco sobre fondo ámbar (sobre ámbar va `--fondo`).
 - **Originalidad**: no usar nombres, logos, personajes ni terminología de franquicias existentes (Marvel, etc.).
 - Respetar `prefers-reduced-motion`. Audio solo tras interacción del usuario.
 - Textos de la interfaz en español.
@@ -26,11 +26,12 @@ Si una tarea contradice la spec, **no improvisar**: señalarlo y proponer el cam
 ## Cómo probar
 
 - Simular un día: abrir `index.html?fecha=AAAA-MM-DD`.
+- Respaldo sin WebGL: poner `efectos.webgl: false` en `config.js`.
 - Pruebas del motor: abrir `tests/cronologia.test.html`.
 - Fechas clave: 2026-10-19 (nominal), 10-20 (alerta), 10-27 (primera colisión), 11-20, 12-05, 12-15, 12-16 (colapso), 12-25 (post-colapso).
 
 ## Forma de trabajo
 
-- Trabajar fase por fase de `03-tareas.md`. Al terminar una fase: verificar, resumir y **detenerse** a esperar revisión.
+- Trabajar fase por fase de `03-tareas.md`. Al terminar una fase: verificar, hacer commit de git, resumir y **detenerse** a esperar revisión.
 - Funciones pequeñas y con nombre en español coherente con el dominio (`calcularEstado`, `dibujarRama`).
 - Comentarios solo donde la intención no sea obvia.
