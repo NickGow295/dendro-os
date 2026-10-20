@@ -40,12 +40,21 @@
     return lineas;
   }
 
+  // Código completo, sufijo (7A2·R9; vale "." o "-" como separador) o nombre de una nombrada.
   function buscarTierra(estado, texto) {
     if (!texto) return null;
-    const q = texto.toLowerCase();
-    return estado.tierras.find((t) => t.id.toLowerCase() === q || t.id.toLowerCase().endsWith(q.replace(/^b-/, "")) && q.length >= 3
-      || t.nombre.toLowerCase() === q);
+    const q = MAYUS(texto.trim()).replace(/[\s._/-]+/g, "·");
+    const porNombre = estado.tierras.nombradas.find((t) => MAYUS(t.nombre) === MAYUS(texto.trim()));
+    if (porNombre) return porNombre;
+    const exacta = estado.tierras.porCodigo(q) || estado.tierras.porCodigo("MYTH·" + q);
+    if (exacta) return exacta;
+    const plano = q.replace(/·/g, "");
+    if (plano.length < 4) return null;
+    const sufijo = DENDRO.multiverso.catalogo().nodos.filter((n) => !n.baja && n.codigo.replace(/·/g, "").endsWith(plano) &&
+      (q.includes("·") ? n.codigo.endsWith("·" + q) : true));
+    return sufijo.length === 1 ? estado.tierras.porCodigo(sufijo[0].codigo) : null;
   }
+  const POR_PAGINA_COLISIONES = 12;
 
   // ── Órdenes ─────────────────────────────────────────────────────────────
   const ORDENES = [
@@ -73,26 +82,33 @@
     {
       nombre: "escanear", alias: ["scan"], ayuda: "barrido de las 24 firmas",
       ejecutar: (args, e, ctx, sesion) => sesion.estrecha ? [
-        L(T("ID    NOMBRE        EST  ESTAB.", "textoTenue")),
-        ...e.tierras.map((t) => L(T(t.id.slice(2) + "  ", "tierra"), T(MAYUS(t.nombre).padEnd(13).slice(0, 13) + " ", "texto"),
+        L(T("CÓDIGO  NOMBRE        EST  ESTAB.", "textoTenue")),
+        ...e.tierras.nombradas.map((t) => L(T(C.codigoCorto(t.codigo).padEnd(8), "tierra"), T(MAYUS(t.nombre).padEnd(13).slice(0, 13) + " ", "texto"),
           T(C.ABREVIATURA[t.estado].padEnd(5), COLOR_ESTADO[t.estado]), T(`${String(t.estabilidad).padStart(3)}%`, C.colorEstabilidad(t.estabilidad)))),
       ] : [
-        L(T("ID      NOMBRE          ω        ESTADO         EST.", "textoTenue")),
-        ...e.tierras.map((t) => L(
-          T(`${t.id}  `, "tierra"), T(MAYUS(t.nombre).padEnd(15).slice(0, 15) + " ", "texto"),
+        L(T("CÓDIGO             NOMBRE          ω        ESTADO         EST.", "textoTenue")),
+        ...e.tierras.nombradas.map((t) => L(
+          T(t.codigo.padEnd(19), "tierra"), T(MAYUS(t.nombre).padEnd(15).slice(0, 15) + " ", "texto"),
           T(t.magia === "Inestable" ? "?.????   " : `${t.omega.toFixed(4)}   `, "tierra"),
           T(t.estado.padEnd(15), COLOR_ESTADO[t.estado]), T(`${String(t.estabilidad).padStart(3)}%`, C.colorEstabilidad(t.estabilidad)))),
       ],
     },
     {
-      nombre: "examinar", alias: ["ver"], uso: "<id|nombre>", ayuda: "ficha breve de una tierra",
+      nombre: "examinar", alias: ["ver"], uso: "<código|nombre>", ayuda: "ficha breve de una rama",
       ejecutar: (args, e, ctx, sesion) => {
         const t = buscarTierra(e, args.join(" "));
-        if (!t) return [L(T("TIERRA DESCONOCIDA. USE UN ID (B-0x05) O UN NOMBRE.", "arma"))];
-        ctx.ui.tierraSeleccionada = t.id;
+        if (!t) return [L(T("RAMA DESCONOCIDA. USE UN CÓDIGO (7A2·R9) O UN NOMBRE.", "arma"))];
+        if (!t.nombrada) {
+          return [
+            L(T(`${t.codigo} · ${t.raiz ? "TRONCO" : "DENOMINACIÓN LOCAL: NO CATALOGADA"}`, "ambar")),
+            L(T("ω ", "textoTenue"), T(t.omega.toFixed(4), "tierra"), T("  RÉGIMEN ", "textoTenue"), T(MAYUS(t.regimen))),
+            L(T("ESTADO ", "textoTenue"), T(t.estado, COLOR_ESTADO[t.estado]), T(`  ${t.raiz ? "COHESIÓN N̂" : "ESTABILIDAD"} ${t.estabilidad}%`, "textoTenue")),
+          ];
+        }
+        ctx.ui.tierraSeleccionada = t.codigo;
         sesion.pendiente = "expediente";
         return [
-          L(T(`${t.id} · ${MAYUS(t.nombre)}`, "ambar")),
+          L(T(`${t.codigo} · ${MAYUS(t.nombre)}`, "ambar")),
           L(T("ω ", "textoTenue"), T(t.magia === "Inestable" ? "LECTURA IMPOSIBLE" : t.omega.toFixed(4), "tierra"), T("  RÉGIMEN ", "textoTenue"), T(MAYUS(t.magia))),
           L(T("ESTADO ", "textoTenue"), T(t.estado, COLOR_ESTADO[t.estado]), T(`  ESTABILIDAD ${t.estabilidad}%`, "textoTenue")),
           L(T(MAYUS(t.caracter), "textoTenue")),
@@ -101,18 +117,23 @@
       },
     },
     {
-      nombre: "colisiones", alias: ["parejas"], ayuda: "parejas y su convergencia",
+      nombre: "colisiones", alias: ["parejas"], uso: "[página]", ayuda: "parejas activas y su convergencia",
       ejecutar: (args, e, ctx, sesion) => {
         sesion.pendiente = "colision";
+        const activas = e.activas.map((id) => C.pareja(e, id)).sort((a, b) => (b.nombrada - a.nombrada) || (a.contacto - b.contacto));
+        const lista = activas.length ? activas : e.parejas.filter((p) => p.nombrada);
+        const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA_COLISIONES));
+        const pagina = Math.max(1, Math.min(paginas, parseInt(args[0], 10) || 1));
         return [
-          L(T("PAR   RAMAS                        ESTADO         Δω      T", "textoTenue")),
-          ...e.parejas.map((p) => {
+          L(T(activas.length ? `ACTIVAS: ${activas.length} · PÁGINA ${pagina}/${paginas}` : "SIN CONVERGENCIAS ACTIVAS · PAREJAS NOMBRADAS", "ambar")),
+          L(T("PAR     RAMAS                        ESTADO         Δω      T", "textoTenue")),
+          ...lista.slice((pagina - 1) * POR_PAGINA_COLISIONES, pagina * POR_PAGINA_COLISIONES).map((p) => {
             const t = p.estado === "ESTABLE" ? "—" : DENDRO.tau.cuenta(p.paraContacto);
             if (sesion.estrecha) {
-              return L(T(`${p.id} `, "ambar"), T(C.ABREVIATURA[p.estado].padEnd(5), COLOR_ESTADO[p.estado]), T(`Δω ${p.deltaOmega.toFixed(4)} `, "tierra"), T(t, "textoTenue"));
+              return L(T(`${p.id.padEnd(6)} `, "ambar"), T(C.ABREVIATURA[p.estado].padEnd(5), COLOR_ESTADO[p.estado]), T(`Δω ${p.deltaOmega.toFixed(4)} `, "tierra"), T(t, "textoTenue"));
             }
-            const nombres = `${MAYUS(C.tierra(e, p.a).nombre)}/${MAYUS(C.tierra(e, p.b).nombre)}`;
-            return L(T(`${p.id}  `, "ambar"), T(nombres.padEnd(28).slice(0, 28) + " ", "texto"), T(p.estado.padEnd(15), COLOR_ESTADO[p.estado]),
+            const nombres = p.nombrada ? `${C.nombre(C.tierra(e, p.a))}/${C.nombre(C.tierra(e, p.b))}` : `${C.codigoCorto(p.a)}/${C.codigoCorto(p.b)}`;
+            return L(T(`${p.id.padEnd(6)}  `, "ambar"), T(nombres.padEnd(28).slice(0, 28) + " ", "texto"), T(p.estado.padEnd(15), COLOR_ESTADO[p.estado]),
               T(`${p.deltaOmega.toFixed(4)}  `, "tierra"), T(t, "textoTenue"));
           }),
           L(T("[ENTER] ABRIR COLISIÓN", "ambarTenue")),
@@ -120,13 +141,13 @@
       },
     },
     {
-      nombre: "aislar", uso: "<id|nombre>", ayuda: "aislante de emergencia (local)",
+      nombre: "aislar", uso: "<código|nombre>", ayuda: "aislante de emergencia (local)",
       ejecutar: (args, e) => {
         const t = buscarTierra(e, args.join(" "));
-        if (!t) return [L(T("INDIQUE UNA TIERRA: aislar B-0x05", "arma"))];
+        if (!t) return [L(T("INDIQUE UNA RAMA: aislar ceniza", "arma"))];
         const texto = ["ANIQUILADA", "COLAPSO"].includes(t.estado) ? "OBJETIVO SIN SEÑAL · ACCIÓN ABORTADA" : "AISLANTE ACTIVADO · SIN EFECTO MEDIBLE EN Δω";
-        DENDRO.local.registrar("CONTENCIÓN", `AISLAR RAMA (TERMINAL) · ${t.id} ${MAYUS(t.nombre)} · ${texto}`);
-        return [L(T(`${t.id} ${MAYUS(t.nombre)}: `, "texto"), T(texto, texto.startsWith("OBJETIVO") ? "arma" : "exito"))];
+        DENDRO.local.registrar("CONTENCIÓN", `AISLAR RAMA (TERMINAL) · ${t.codigo} ${C.nombre(t)} · ${texto}`);
+        return [L(T(`${t.codigo} ${t.nombre ? MAYUS(t.nombre) : ""}: `, "texto"), T(texto, texto.startsWith("OBJETIVO") ? "arma" : "exito"))];
       },
     },
     {

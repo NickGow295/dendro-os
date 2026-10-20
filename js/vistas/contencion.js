@@ -18,8 +18,8 @@
   function crear(ctx) {
     const { ui } = ctx;
     let estado = ctx.estado;
-    const ids = estado.tierras.map((t) => t.id);
-    if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
+    const ids = estado.tierras.nombradas.map((t) => t.codigo);
+    if (!ids.includes(ui.tierraSeleccionada)) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
     let elegida = 0, paso = "elegir", inicio = 0, duracion = 0, resultado = null, temporizador = 0;
     let panel = null, escena = null, historial = null;
     const tierra = () => C.tierra(estado, ui.tierraSeleccionada);
@@ -41,7 +41,7 @@
       temporizador = setTimeout(() => {
         const [texto, color] = concluir(accion, t);
         resultado = { texto, color };
-        DENDRO.local.registrar("CONTENCIÓN", `${accion.titulo} · ${t.id} ${MAYUS(t.nombre)} · ${texto}`);
+        DENDRO.local.registrar("CONTENCIÓN", `${accion.titulo} · ${t.codigo} ${MAYUS(t.nombre)} · ${texto}`);
         DENDRO.sonido.beep(color === "exito" ? 880 : 330);
         paso = "resultado";
         ctx.redibujar();
@@ -63,7 +63,7 @@
 
       let y = 0;
       panel.escribir(1, y, "OBJETIVO", "textoTenue");
-      panel.escribir(11, y++, `◄ ${t.id} ${MAYUS(t.nombre)} ►`, "ambar");
+      panel.escribir(11, y++, `◄ ${t.codigo} ${MAYUS(t.nombre)} ►`, "ambar");
       panel.escribir(11, y++, t.estado, COLOR_ESTADO[t.estado]);
       y++;
       ACCIONES.forEach((a, i) => {
@@ -80,7 +80,7 @@
       if (paso === "elegir") panel.escribir(1, fila, ancho ? "↑↓ ACCIÓN · ←→ OBJETIVO · ENTER EJECUTAR" : "TOQUE UNA ACCIÓN", "textoTenue");
       if (paso === "confirmar") {
         panel.escribir(1, fila, `¿EJECUTAR ${ACCIONES[elegida].titulo}`, "ambar");
-        panel.escribir(1, fila + 1, `SOBRE ${t.id}? [S/N]`, "ambar", { parpadeo: true });
+        panel.escribir(1, fila + 1, `SOBRE ${t.codigo}? [S/N]`, "ambar", { parpadeo: true });
       }
       if (paso === "ejecutando") panel.escribir(1, fila, "EJECUTANDO · NO APAGUE LA CONSOLA", "ambar");
       if (paso === "resultado") C.partir(resultado.texto, panel.ancho - 2).slice(0, 2).forEach((l, i) => panel.escribir(1, fila + i, l, resultado.color));

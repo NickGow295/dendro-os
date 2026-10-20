@@ -1,5 +1,6 @@
-// Globos de alambre (RF-13): modelo procedural por tierra (en caché) y dibujo ortográfico.
-// El modelo sale solo de la semilla hash(id) y de los parámetros de data/; la rotación, del reloj.
+// Globos de alambre (RF-13): modelo procedural por rama (en caché) y dibujo ortográfico.
+// El modelo sale solo de la semilla hash(semillaGlobo) y de los parámetros de data/; la rotación, del reloj.
+// MYTH y las nombradas se quedan siempre en caché; las generadas, como mucho multiverso.cacheGlobos.
 (function (DENDRO) {
   "use strict";
 
@@ -7,7 +8,8 @@
   const PLACAS = 7;           // trozos en que se rompe un globo aniquilado
   const IMPACTOS = 14;        // posiciones posibles de daño por globo
   const PASOS_MERIDIANO = 24, PASOS_PARALELO = 48;
-  const cache = new Map();
+  const cache = new Map();          // fijos: MYTH y las nombradas
+  const generados = new Map();      // por orden de uso, el más antiguo primero
 
   function aVector(lon, lat) {
     const c = Math.cos(lat);
@@ -163,20 +165,32 @@
     };
   }
 
-  function modelo(clave, params) {
+  function modelo(clave, params, generado) {
     params = params || {};
     const llave = clave + "|" + (params.mascara || "") + "|" + (params.mar || "") + "|" + (params.rugosidad || "");
-    let m = cache.get(llave);
-    if (!m) { m = construir(clave, params); cache.set(llave, m); }
+    if (!generado) {
+      let m = cache.get(llave);
+      if (!m) { m = construir(clave, params); cache.set(llave, m); }
+      return m;
+    }
+    let m = generados.get(llave);
+    if (m) generados.delete(llave);
+    else m = construir(clave, params);
+    generados.set(llave, m);
+    const max = window.DENDRO_CONFIG.multiverso.cacheGlobos;
+    while (generados.size > max) generados.delete(generados.keys().next().value);
     return m;
   }
+
+  // ¿Es una rama generada (sin nombre)? Sus modelos van a la caché limitada.
+  const esGenerada = (rama) => typeof rama === "object" && !rama.nombrada && !rama.raiz;
 
   // ── Dibujo ────────────────────────────────────────────────────────────────
 
   function dibujar(v, cx, cy, r, tierra, o) {
-    const clave = typeof tierra === "string" ? tierra : tierra.id;
+    const clave = typeof tierra === "string" ? tierra : tierra.semillaGlobo || tierra.codigo;
     const params = (typeof tierra === "object" && tierra.globo) || {};
-    const m = modelo(clave, params);
+    const m = modelo(clave, params, esGenerada(tierra));
     const g = cfg().globo;
     const R = r * v.unidad, CX = v.px(cx), CY = v.py(cy);
     const t = v.ahora() / 1000;
@@ -326,5 +340,5 @@
     }
   }
 
-  DENDRO.globo = { modelo, dibujar };
+  DENDRO.globo = { modelo, dibujar, enCache: () => ({ fijos: cache.size, generados: generados.size }) };
 })(window.DENDRO = window.DENDRO || {});

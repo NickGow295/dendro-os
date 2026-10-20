@@ -13,8 +13,8 @@
 
   function crear(ctx) {
     const { estado, ui } = ctx;
-    const ids = estado.tierras.map((t) => t.id);
-    if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
+    const ids = estado.tierras.nombradas.map((t) => t.codigo);
+    if (!ids.includes(ui.tierraSeleccionada)) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
     const revelado = estado.fase >= FASE_REVELACION;
     const R = window.DENDRO_CONFIG.cronologia.ramasAfectadasFinal;
     let celdas = [], columnas = 6, pagina = 0, ancho = true, grafica = null;
@@ -31,7 +31,7 @@
     function dibujar(reg) {
       ancho = reg.ancho >= 80;
       const t = C.tierra(estado, ui.tierraSeleccionada);
-      const fin = reg.escribir(1, 0, `${t.id} ${MAYUS(t.nombre)}`, "texto");
+      const fin = reg.escribir(1, 0, `${t.codigo} ${MAYUS(t.nombre)}`, "texto");
       reg.escribir(fin + 1, 0, ` ${t.estado} `, COLOR_ESTADO[t.estado], { inverso: true });
       if (ancho) reg.derecha(0, `ESTABILIDAD ${t.estabilidad} % · ${t.pareja || "—"} `, "textoTenue");
 
@@ -56,7 +56,7 @@
         const x = Math.floor((i % columnas) * an), y = Math.floor(Math.floor(i / columnas) * al);
         const celda = rejilla.region(x, y, Math.floor(an), Math.floor(al));
         const tt = C.tierra(estado, id);
-        celda.escribir(1, celda.alto - 2, tt.id.slice(2), id === ui.tierraSeleccionada ? "ambar" : "textoTenue");
+        celda.escribir(1, celda.alto - 2, "·" + tt.codigo.split("·").pop(), id === ui.tierraSeleccionada ? "ambar" : "textoTenue");
         celda.derecha(celda.alto - 2, ABREVIATURA[tt.estado] + " ", COLOR_ESTADO[tt.estado]);
         return { id, region: celda, x: rejilla.x - reg.x + x, y: rejilla.y - reg.y + y, ancho: Math.floor(an), alto: Math.floor(al) };
       });

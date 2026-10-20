@@ -95,13 +95,15 @@
 
 ## Fase 6 — Multiverso masivo y MYTH
 
-- [ ] **T6.1** `data/myth.js` (MYTH, 13 primarias con origen y salto, cinco guardianes con instante de caída), `data/generacion.js` y `config.multiverso`. *(RF-15, RF-16)*
-- [ ] **T6.2** Migrar `data/tierras.js` y `data/colisiones.js` a códigos (`04-lore.md §4.2`), con `semillaGlobo` = designación antigua; textos de `data/eventos.js` sin designaciones hexadecimales. *(RF-15, RF-13)*
-- [ ] **T6.3** `multiverso.js`: catálogo determinista (reservas, códigos, datos generados, 1 500–2 000 ramas) y disposición normalizada con rejilla espacial. *(RF-15)*
-- [ ] **T6.4** Parejas generadas: candidatas, orden por saltos, contactos exponenciales, postura/desenlace/armas; integración en `calcularEstado` (`activas`, `enColision`, `ataques`, registro agrupado por pulso). *(RF-15, RF-06)*
-- [ ] **T6.5** Cohesión N̂ y guardianes en el `Estado` (`02-diseno.md §4.6`); `serieFirmas`. *(RF-16, RF-19)*
-- [ ] **T6.6** `globo.js`: caché limitada para ramas generadas; MYTH y las 24 fijas. *(RF-13, RNF-02)*
-- [ ] **T6.7** Pruebas del catálogo y de la cadena (`02-diseno.md §8`); `calcularEstado` < 20 ms. *(RNF-02, RNF-06)*
+- [x] **T6.1** `data/myth.js` (MYTH, 13 primarias con origen y salto, cinco guardianes con instante de caída), `data/generacion.js` y `config.multiverso`. *(RF-15, RF-16)*
+- [x] **T6.2** Migrar `data/tierras.js` y `data/colisiones.js` a códigos (`04-lore.md §4.2`), con `semillaGlobo` = designación antigua; textos de `data/eventos.js` sin designaciones hexadecimales. *(RF-15, RF-13)*
+- [x] **T6.3** `multiverso.js`: catálogo determinista (reservas, códigos, datos generados, 1 500–2 000 ramas) y disposición normalizada con rejilla espacial. *(RF-15)*
+- [x] **T6.4** Parejas generadas: candidatas, orden por saltos, contactos exponenciales, postura/desenlace/armas; integración en `calcularEstado` (`activas`, `enColision`, `ataques`, registro agrupado por pulso). *(RF-15, RF-06)*
+- [x] **T6.5** Cohesión N̂ y guardianes en el `Estado` (`02-diseno.md §4.6`); `serieFirmas`. *(RF-16, RF-19)*
+- [x] **T6.6** `globo.js`: caché limitada para ramas generadas; MYTH y las 24 fijas. *(RF-13, RNF-02)*
+- [x] **T6.7** Pruebas del catálogo y de la cadena (`02-diseno.md §8`); `calcularEstado` < 20 ms. *(RNF-02, RNF-06)*
+
+> Decisiones: las primarias y los nudos del camino de una nombrada no forman parejas generadas, y las primas son siempre de la misma primaria (`02-diseno.md §4.5`). N̂ cruza 0.60 a las 21:05 del 12-09; el evento fijo y la caída de Calcina se movieron a ese minuto. Hasta la Fase 8, ÁRBOL, MONITOR, EXPEDIENTE y CONTENCIÓN siguen mostrando solo las 24 nombradas; COLISIÓN y OSCILOSCOPIO recorren con ←/→ las parejas activas (o las nombradas si no hay), y `colisiones` lista las activas por páginas.
 
 **Verificación:** dos cargas dan el mismo catálogo y el mismo `N`; el 10-27 solo C-01 está en contacto; las ramas en colisión crecen exponencialmente hasta el colapso; N̂ cruza 0.60 el 12-09.
 

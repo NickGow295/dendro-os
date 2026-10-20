@@ -12,16 +12,16 @@
 
   function crear(ctx) {
     const { estado, ui } = ctx;
-    const tierra = (id) => estado.tierras.find((t) => t.id === id);
-    const pareja = () => estado.parejas.find((p) => p.id === ui.parejaSeleccionada) || estado.parejas[0];
+    const tierra = (codigo) => C.tierra(estado, codigo);
+    const pareja = () => C.pareja(estado, ui.parejaSeleccionada) || C.pareja(estado, estado.parejaPrincipal);
     let escena = null;   // región donde van los globos (se recalcula en cada dibujo)
     let grafica = null;  // interior de la caja de la minigráfica, o null
     let globos = [];     // posiciones del último fotograma, para tocar un globo y abrir su expediente
 
     // ── Texto: selector y paneles ───────────────────────────────────────────
     function nombrePareja(par) {
-      if (par.estado === "FUSIONADA") return `${MAYUS(tierra(par.a).nombre)} ∪ ${MAYUS(tierra(par.b).nombre)}`;
-      return `${MAYUS(tierra(par.a).nombre)} ⟷ ${MAYUS(tierra(par.b).nombre)}`;
+      if (par.estado === "FUSIONADA") return `${C.nombre(tierra(par.a))} ∪ ${C.nombre(tierra(par.b))}`;
+      return `${C.nombre(tierra(par.a))} ⟷ ${C.nombre(tierra(par.b))}`;
     }
 
     function textoContacto(par) {
@@ -30,10 +30,11 @@
     }
 
     function dibujarSelector(reg, par, ancho) {
-      const indice = estado.parejas.indexOf(par) + 1;
+      const lista = C.parejasNavegables(estado), indice = lista.indexOf(par) + 1;
       const centro = ancho ? `◄  ${par.id} · ${nombrePareja(par)}  ►` : `◄ ${par.id} ►`;
       reg.centrar(0, centro, "ambar");
-      reg.escribir(1, 0, `PAREJA ${String(indice).padStart(2, "0")}/${estado.parejas.length}`, "textoTenue");
+      const ancho3 = String(lista.length).length;
+      reg.escribir(1, 0, `${estado.activas.length ? "ACTIVA" : "PAREJA"} ${indice ? String(indice).padStart(ancho3, "0") : "—"}/${lista.length}`, "textoTenue");
       if (par.id === estado.parejaPrincipal) reg.derecha(0, " PRINCIPAL ", "ambar", { inverso: true });
       else reg.derecha(0, ancho ? "INICIO: PRINCIPAL " : "", "textoTenue");
       if (!ancho) reg.centrar(1, nombrePareja(par), "texto");
@@ -63,7 +64,7 @@
         caja.escribir(12, y++, valor, color);
       };
       fila("POSTURA", POSTURAS[par.postura], par.postura.includes("hostil") ? "arma" : "texto");
-      fila("AGRESOR", par.agresor ? MAYUS(tierra(par.agresor).nombre) : "—", par.agresor ? "arma" : "textoTenue");
+      fila("AGRESOR", par.agresor ? C.nombre(tierra(par.agresor)) : "—", par.agresor ? "arma" : "textoTenue");
       const armas = Object.entries(par.armas || {});
       if (!armas.length) fila("ARMAS", "NINGUNA DECLARADA", "textoTenue");
       for (const [id, lista] of armas) {
@@ -89,7 +90,7 @@
           grafica = g;
           g.escribir(0, 0, "Δω₀", "textoTenue");
           g.escribir(0, g.alto - 2, "0", "textoTenue");
-          const serie = par.serieDeltaOmega;
+          const serie = DENDRO.cronologia.serieDeltaOmega(par);
           g.escribir(4, g.alto - 1, DENDRO.tau.corto(serie[0].instante), "textoTenue");
           g.derecha(g.alto - 1, DENDRO.tau.corto(serie[serie.length - 1].instante), "textoTenue");
         }
@@ -106,13 +107,13 @@
     // ── Vectores: escena ────────────────────────────────────────────────────
     // En vertical (compacto) el id y la ω van en líneas separadas para no salirse por la derecha.
     function rotulosGlobo(v, t, x, y, alinear, compacto) {
-      v.texto(x, y, MAYUS(t.nombre), "texto", { tam: 1.4, alinear });
+      v.texto(x, y, C.nombre(t), "texto", { tam: 1.4, alinear });
       if (compacto) {
-        v.texto(x, y + 1.35, t.id, "tierra", { tam: 1, alinear });
+        v.texto(x, y + 1.35, t.codigo, "tierra", { tam: 1, alinear });
         v.texto(x, y + 2.35, `ω ${t.omega.toFixed(4)}`, "tierra", { tam: 1, alinear });
         y += 1;
       } else {
-        v.texto(x, y + 1.35, `${t.id} · ω ${t.omega.toFixed(4)}`, "tierra", { tam: 1, alinear });
+        v.texto(x, y + 1.35, `${t.codigo} · ω ${t.omega.toFixed(4)}`, "tierra", { tam: 1, alinear });
       }
       v.texto(x, y + 2.35, t.estado, COLOR_ESTADO[t.estado], { tam: 1, alinear });
       const anchoBarra = compacto ? 11 : 14;
@@ -120,7 +121,7 @@
     }
 
     function rotuloEstado(par) {
-      const nombre = (id) => MAYUS(tierra(id).nombre);
+      const nombre = (codigo) => C.nombre(tierra(codigo));
       switch (par.estado) {
         case "ESTABLE": return ["SIN CONVERGENCIA", "tierra"];
         case "APROXIMACIÓN": return [textoContacto(par), par.hostil ? "arma" : "ambar"];
@@ -187,7 +188,7 @@
     }
 
     function grafiqueta(v, par) {
-      const serie = par.serieDeltaOmega, w = v.ancho - 4, h = v.alto - 2;
+      const serie = DENDRO.cronologia.serieDeltaOmega(par), w = v.ancho - 4, h = v.alto - 2;
       const px = (i) => 4 + (i / (serie.length - 1)) * w;
       const py = (valor) => 0.5 + (1 - valor / par.deltaOmega0) * (h - 0.5);
       v.linea(4, py(0), 4 + w, py(0), "ambarTenue", { alfa: 0.6 });
@@ -224,28 +225,28 @@
         const juntos = (2 * r) / v.aspecto;
         const lejos = Math.min(W * 0.62, W - (2 * r) / v.aspecto - 6);
         const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * par.separacion;
-        posiciones[ta.id] = { x: W / 2 - d / 2, y: cy };
-        posiciones[tb.id] = { x: W / 2 + d / 2, y: cy };
+        posiciones[ta.codigo] = { x: W / 2 - d / 2, y: cy };
+        posiciones[tb.codigo] = { x: W / 2 + d / 2, y: cy };
       } else {
         r = Math.min(W * v.aspecto * 0.26, H * 0.15);
         const cx = W * 0.36;
         const juntos = 2 * r;
         const lejos = H * 0.6;
         const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * par.separacion;
-        posiciones[ta.id] = { x: cx, y: H * 0.52 - d / 2 };
-        posiciones[tb.id] = { x: cx, y: H * 0.52 + d / 2 };
+        posiciones[ta.codigo] = { x: cx, y: H * 0.52 - d / 2 };
+        posiciones[tb.codigo] = { x: cx, y: H * 0.52 + d / 2 };
       }
 
-      for (const t of [ta, tb]) globos.push({ id: t.id, x: posiciones[t.id].x, y: posiciones[t.id].y, r, aspecto: v.aspecto });
+      for (const t of [ta, tb]) globos.push({ codigo: t.codigo, nombrada: t.nombrada, x: posiciones[t.codigo].x, y: posiciones[t.codigo].y, r, aspecto: v.aspecto });
       if (par.estado === "FUSIONADA") {
-        const p = posiciones[ta.id];
+        const p = posiciones[ta.codigo];
         v.globo(p.x, p.y, r * 1.1, ta, { fusion: { tierra: tb, mezcla: 0.5 + 0.2 * Math.sin(segundos * 0.8) } });
-        const t = { ...ta, nombre: `${ta.nombre} ∪ ${tb.nombre}`, estabilidad: ta.estabilidad };
+        const t = { ...ta, nombre: `${C.nombre(ta)} ∪ ${C.nombre(tb)}`, estabilidad: ta.estabilidad };
         if (vertical) rotulosGlobo(v, t, p.x + r * 1.1 / v.aspecto + 2, p.y - 2.5, "left", true);
         else rotulosGlobo(v, t, p.x, p.y + r * 1.1 + 0.6, "center");
       } else {
         // Regla de Δω entre los dos limbos
-        const pa = posiciones[ta.id], pb = posiciones[tb.id];
+        const pa = posiciones[ta.codigo], pb = posiciones[tb.codigo];
         if (par.separacion > 0.05) {
           if (!vertical) {
             const x1 = pa.x + r / v.aspecto + 1.5, x2 = pb.x - r / v.aspecto - 1.5;
@@ -263,7 +264,7 @@
         contacto(v, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2, par, segundos, vertical);
         ataques(v, par, posiciones, r, segundos, vertical);
         for (const t of [ta, tb]) {
-          const p = posiciones[t.id];
+          const p = posiciones[t.codigo];
           if (vertical) rotulosGlobo(v, t, p.x + r / v.aspecto + 2, p.y - 2.5, "left", true);
           else rotulosGlobo(v, t, p.x, p.y + r + 0.6, "center");
         }
@@ -273,8 +274,8 @@
     }
 
     function cambiarPareja(paso) {
-      const i = estado.parejas.indexOf(pareja());
-      ui.parejaSeleccionada = estado.parejas[(i + paso + estado.parejas.length) % estado.parejas.length].id;
+      const lista = C.parejasNavegables(estado), i = lista.indexOf(pareja());
+      ui.parejaSeleccionada = lista[(i + paso + lista.length) % lista.length].id;
       ctx.redibujar();
     }
 
@@ -300,8 +301,8 @@
         // Coordenadas de la escena (empieza dos filas por debajo de la vista).
         const x = punto.x, y = punto.y - 2;
         const tocado = globos.find((g) => Math.hypot((x - g.x) * g.aspecto, y - g.y) <= g.r);
-        if (tocado) {
-          ui.tierraSeleccionada = tocado.id;
+        if (tocado && tocado.nombrada) {
+          ui.tierraSeleccionada = tocado.codigo;
           ctx.abrir("expediente");
         }
       },

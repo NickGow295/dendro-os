@@ -9,14 +9,14 @@ El estado de DENDRO-OS es una función pura del instante, truncado al minuto (`D
 
 ## Pasos
 
-1. Confirmar que existen `config.js`, `data/tierras.js`, `data/colisiones.js`, `data/eventos.js`, `data/mensajes.js` y `js/nucleo/prng.js`, `reloj.js`, `tau.js`, `cronologia.js`.
+1. Confirmar que existen `config.js`, `data/myth.js`, `data/tierras.js`, `data/generacion.js`, `data/colisiones.js`, `data/eventos.js`, `data/mensajes.js` y `js/nucleo/prng.js`, `reloj.js`, `tau.js`, `multiverso.js`, `cronologia.js`.
 2. Ejecutar desde la raíz del proyecto:
 
    ```bash
    node .claude/skills/verificar-cronologia/scripts/simular.js 2026-10-18 2026-12-18 24
    ```
 
-   Argumentos: desde, hasta (`AAAA-MM-DD` o `AAAA-MM-DDThh:mm`) y cada cuántas horas imprimir una fila (24 por defecto). La monotonía se comprueba siempre hora a hora. Cada fila: instante local, τ, fase, alerta, p, intensidad, ramas afectadas y parejas por estado. Al final, el tiempo medio de `calcularEstado` y el resultado de las comprobaciones.
+   Argumentos: desde, hasta (`AAAA-MM-DD` o `AAAA-MM-DDThh:mm`) y cada cuántas horas imprimir una fila (24 por defecto). La monotonía se comprueba siempre hora a hora. Cada fila: instante local, τ, fase, alerta, p, intensidad, ramas afectadas, ramas en colisión, cohesión N̂ y parejas por estado (nombradas y generadas). Al final, el tiempo medio de `calcularEstado` y el resultado de las comprobaciones.
 3. Si alguna comprobación falla, corregir el motor o los datos y repetir. **No** relajar las comprobaciones para que pasen.
 4. Para revisar el aspecto visual, abrir `index.html?fecha=AAAA-MM-DD` (las 12:00) o `?fecha=AAAA-MM-DDThh:mm`. El reloj sigue corriendo desde ese instante; `&congelar=1` lo fija.
 5. Las mismas comprobaciones, y más, están en `tests/cronologia.test.html`.
@@ -26,8 +26,9 @@ El estado de DENDRO-OS es una función pura del instante, truncado al minuto (`D
 - 10-19 → fase 0 NOMINAL, 0 ramas. Inicio de alerta → fase 1, 0 ramas.
 - 10-27 03:16 → ninguna colisión; 03:17 → exactamente 2 ramas y C-01 en CONTACTO; 10-27 12:00 → 2 ramas en colisión.
 - 12-16 13:59 → fase 4 en recta final con intensidad máxima; 14:00 → fase 5 y ramas = `ramasAfectadasFinal`; 12-25 → colapso.
-- Ramas afectadas, ramas en colisión y fase nunca retroceden de una hora a la siguiente.
-- Al menos 4 parejas hostiles; Ostrakh ataca a Velmora el 10-25.
+- Ramas afectadas, ramas en colisión y fase nunca retroceden de una hora a la siguiente; N̂ nunca crece.
+- Catálogo entre `ramasMin` y `ramasMax`, idéntico en una segunda carga; el 10-27 solo C-01 está en contacto; ~60 contactos en las últimas 14 horas; N̂ cruza 0.60 el 12-09 y es 0 en el colapso.
+- Al menos 4 parejas nombradas hostiles; Ostrakh ataca a Velmora el 10-25.
 - τ del inicio de alerta = 7525.000 y del colapso = 7582.583.
 - Ningún texto de registro, mensajes o archivo contiene fechas de nuestro calendario.
 - Mismo instante calculado dos veces → mismo resultado (determinismo).

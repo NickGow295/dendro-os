@@ -49,15 +49,15 @@
 
   function crear(ctx) {
     const { estado, ui } = ctx;
-    const arbol = construir(estado.parejas);
+    const arbol = construir(estado.parejas.filter((p) => p.nombrada));
     const ordenHojas = Object.keys(arbol.hojas).sort((a, b) => arbol.hojas[a].x - arbol.hojas[b].x);
-    if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
+    if (!arbol.hojas[ui.tierraSeleccionada]) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
     let lienzo = null, hover = null, aspecto = 0.5, puntos = {};
 
     function dibujar(reg) {
       const t = C.tierra(estado, ui.tierraSeleccionada);
       const par = t.pareja ? C.pareja(estado, t.pareja) : null;
-      const fin = reg.escribir(1, 0, `${t.id} ${MAYUS(t.nombre)}`, "texto");
+      const fin = reg.escribir(1, 0, `${t.codigo} ${MAYUS(t.nombre)}`, "texto");
       const x = reg.escribir(fin + 1, 0, ` ${t.estado} `, COLOR_ESTADO[t.estado], { inverso: true });
       if (reg.ancho >= 80) {
         reg.escribir(x + 1, 0, `${par ? par.id : "—"} · ESTABILIDAD ${t.estabilidad} %`, "textoTenue");
@@ -185,7 +185,7 @@
         if (id === ui.tierraSeleccionada || id === hover) {
           const seleccion = id === ui.tierraSeleccionada;
           if (seleccion) v.circulo(x, y, RADIO_NODO + 0.8, "ambar", { grosor: window.DENDRO_CONFIG.vectores.grosorActivo });
-          v.texto(x, y - 1.4, `${t.id} ${MAYUS(t.nombre)}`, seleccion ? "ambar" : "texto", { tam: 1, alinear: "center", base: "bottom" });
+          v.texto(x, y - 1.4, `${t.codigo} ${MAYUS(t.nombre)}`, seleccion ? "ambar" : "texto", { tam: 1, alinear: "center", base: "bottom" });
         }
       }
     }

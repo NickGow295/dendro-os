@@ -19,14 +19,40 @@
   };
   const COLOR_TIPO = { "SISTEMA": "texto", "COLISIÓN": "ambar", "HOSTIL": "arma", "CONTENCIÓN": "tierra" };
 
-  const tierra = (estado, id) => estado.tierras.find((t) => t.id === id);
-  const pareja = (estado, id) => estado.parejas.find((p) => p.id === id);
+  const tierra = (estado, codigo) => estado.tierras.porCodigo(codigo);
+  const indicesParejas = new WeakMap();   // Estado → Map id → pareja (hay cientos de parejas)
+  function pareja(estado, id) {
+    let indice = indicesParejas.get(estado);
+    if (!indice) { indice = new Map(estado.parejas.map((p) => [p.id, p])); indicesParejas.set(estado, indice); }
+    return indice.get(id);
+  }
+  const nombre = (t) => (t.nombre ? MAYUS(t.nombre) : t.codigo);   // las generadas se ven por su código
+
+  // Dos últimos segmentos del código (7A2·R9), para las celdas estrechas.
+  const codigoCorto = (codigo) => codigo.split("·").slice(-2).join("·");
+
+  // Parejas que recorren ←/→: las activas si hay, si no las nombradas.
+  function parejasNavegables(estado) {
+    return estado.activas.length ? estado.activas.map((id) => pareja(estado, id)) : estado.parejas.filter((p) => p.nombrada);
+  }
+
+  // Pareja nombrada de referencia (las vistas de las 24 tierras no seleccionan ramas generadas).
+  function parejaNombrada(estado) {
+    const principal = pareja(estado, estado.parejaPrincipal);
+    if (principal && principal.nombrada) return principal;
+    const nombradas = estado.parejas.filter((p) => p.nombrada);
+    const activa = nombradas.filter((p) => ["CONTACTO", "HOSTILIDADES", "INTERFERENCIA", "APROXIMACIÓN"].includes(p.estado));
+    if (activa.length) return activa.reduce((m, p) => (p.contacto > m.contacto ? p : m));
+    const futura = nombradas.filter((p) => p.estado === "ESTABLE");
+    if (futura.length) return futura.reduce((m, p) => (p.contacto < m.contacto ? p : m));
+    return nombradas.reduce((m, p) => (p.contacto > m.contacto ? p : m));
+  }
 
   // Opciones de dibujo de un globo según el estado de su tierra (02-diseno.md §7.4).
   function opcionesGlobo(estado, t, segundos) {
     const par = t.pareja ? pareja(estado, t.pareja) : null;
     const o = {};
-    const danos = estado.ataques.filter((a) => a.hacia === t.id).reduce((m, a) => Math.max(m, a.progreso), 0);
+    const danos = estado.ataques.filter((a) => a.hacia === t.codigo).reduce((m, a) => Math.max(m, a.progreso), 0);
     if (danos) o.danos = danos;
     if (t.estado === "APROXIMACIÓN" && par) o.halo = Math.max(0.3, 1 - par.separacion);
     if (["CONTACTO", "HOSTILIDADES", "INTERFERENCIA"].includes(t.estado)) o.halo = 1;
@@ -84,6 +110,6 @@
 
   DENDRO.vistasComun = {
     MAYUS, COLOR_ESTADO, ABREVIATURA, POSTURAS, COLOR_TIPO,
-    tierra, pareja, opcionesGlobo, colorEstabilidad, barraEstabilidad, selector, ladoDelToque, partir, desplazamiento,
+    tierra, pareja, nombre, codigoCorto, parejasNavegables, parejaNombrada, opcionesGlobo, colorEstabilidad, barraEstabilidad, selector, ladoDelToque, partir, desplazamiento,
   };
 })(window.DENDRO = window.DENDRO || {});

@@ -57,7 +57,21 @@ window.DENDRO_CONFIG = {
     latidosPorPulso: 100,
   },
 
+  // Catálogo generado (semilla fija: no cambia con el día) y cascada de contactos.
   multiverso: {
+    semilla: "DENDRO·CATALOGO·1",
+    hijosPorNivel: { 2: [4, 7], 3: [4, 6], 4: [3, 5] }, // el nivel 1 son las 13 primarias de data/myth.js
+    ramasMin: 1500, ramasMax: 2000,
+    regimen: { "Mundana": 0.40, "Mágica baja": 0.25, "Mágica alta": 0.25, "Inestable": 0.10 },
+    regimenJoven: { "Mundana": 0.20, "Mágica baja": 0.25, "Mágica alta": 0.25, "Inestable": 0.30 },
+    postura: { "hostil": 0.22, "mutua-hostil": 0.08, "evacuacion": 0.15, "aislamiento": 0.15, "negociacion": 0.15, "ignorancia": 0.25 },
+    desenlace: { "aniquilacion": 0.40, "superviviente": 0.35, "fusion": 0.25 },
+    cascada: {
+      parejasGeneradas: 780,      // contactos generados hasta el colapso
+      curvatura: 10,              // más alto, más concentrados al final
+      fraccionPrimas: 0.15,       // parejas entre primas en vez de hermanas
+    },
+    cacheGlobos: 64,              // modelos de globo de ramas generadas en memoria
     ventanas: {                   // en ciclos; se comprimen cerca del colapso
       aproximacionMax: 7, factorAproximacion: 3,
       tramoMax: 4, factorTramo: 0.5,   // contacto + hostilidades / interferencia

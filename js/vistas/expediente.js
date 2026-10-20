@@ -11,8 +11,8 @@
   function crear(ctx) {
     const { ui } = ctx;
     let estado = ctx.estado;
-    const ids = estado.tierras.map((t) => t.id);
-    if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
+    const ids = estado.tierras.nombradas.map((t) => t.codigo);
+    if (!ids.includes(ui.tierraSeleccionada)) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
     let evento = -1;   // índice del evento resaltado en la línea temporal (−1: el último)
     let zonaGlobo = null, zonaLinea = null, campoOmega = null;
 
@@ -29,16 +29,16 @@
         if (i >= reg.alto) return;
         const t = C.tierra(estado, id), activa = id === ui.tierraSeleccionada;
         reg.rellenar(0, i, reg.ancho, 1, " ", "ambar", activa ? { inverso: true } : null);
-        reg.escribir(1, i, `${id.slice(4)} ${MAYUS(t.nombre)}`.slice(0, reg.ancho - 3), activa ? "ambar" : COLOR_ESTADO[t.estado] === "tierra" ? "texto" : COLOR_ESTADO[t.estado], activa ? { inverso: true } : null);
+        reg.escribir(1, i, `${C.codigoCorto(id)} ${MAYUS(t.nombre)}`.slice(0, reg.ancho - 3), activa ? "ambar" : COLOR_ESTADO[t.estado] === "tierra" ? "texto" : COLOR_ESTADO[t.estado], activa ? { inverso: true } : null);
       });
     }
 
     function dibujarFicha(caja, t) {
       const par = t.pareja ? C.pareja(estado, t.pareja) : null;
-      const otra = par ? C.tierra(estado, par.a === t.id ? par.b : par.a) : null;
+      const otra = par ? C.tierra(estado, par.a === t.codigo ? par.b : par.a) : null;
       const filas = [];
       const fila = (etiqueta, valor, color) => filas.push([etiqueta, valor, color || "texto"]);
-      fila("DESIGNACIÓN", t.id, "tierra");
+      fila("DESIGNACIÓN", t.codigo, "tierra");
       fila("NOMBRE", MAYUS(t.nombre));
       fila("FIRMA ω", t.magia === "Inestable" ? "" : t.omega.toFixed(4), "tierra");
       fila("RÉGIMEN", MAYUS(t.magia));
@@ -50,8 +50,8 @@
       if (par) {
         fila("PAREJA", `${par.id} · ${MAYUS(otra.nombre)}`, "ambar");
         fila("POSTURA", POSTURAS[par.postura], par.postura.includes("hostil") ? "arma" : "texto");
-        const propias = (par.armas && par.armas[t.id]) || [];
-        const contra = (par.armas && par.armas[otra.id]) || [];
+        const propias = (par.armas && par.armas[t.codigo]) || [];
+        const contra = (par.armas && par.armas[otra.codigo]) || [];
         if (propias.length) fila("ARMAS", MAYUS(propias.map((a) => estado.armas[a].nombre).join(", ")), "arma");
         if (contra.length) fila("AMENAZA", MAYUS(contra.map((a) => estado.armas[a].nombre).join(", ")), "arma");
       }
@@ -75,12 +75,12 @@
         const anchoLista = 22, anchoFicha = 48;
         dibujarLista(reg.caja(0, 0, anchoLista, reg.alto - altoLinea, { titulo: "TIERRAS", doble: false }));
         zonaGlobo = reg.region(anchoLista, 0, reg.ancho - anchoLista - anchoFicha, reg.alto - altoLinea);
-        zonaGlobo.centrar(0, `${t.id} · ${MAYUS(t.nombre)}`, "ambar");
+        zonaGlobo.centrar(0, `${t.codigo} · ${MAYUS(t.nombre)}`, "ambar");
         const ficha = reg.caja(reg.ancho - anchoFicha, 0, anchoFicha, reg.alto - altoLinea, { titulo: "EXPEDIENTE" });
         const usadas = dibujarFicha(ficha, t);
         zonaGlobo.barra = { region: ficha, y: usadas };
       } else {
-        C.selector(reg, 0, `${t.id} ${MAYUS(t.nombre)}`);
+        C.selector(reg, 0, `${t.codigo} ${MAYUS(t.nombre)}`);
         const altoGlobo = Math.floor((reg.alto - 1 - altoLinea) * 0.36);
         zonaGlobo = reg.region(0, 1, reg.ancho, altoGlobo);
         const ficha = reg.caja(0, 1 + altoGlobo, reg.ancho, reg.alto - 1 - altoGlobo - altoLinea, { titulo: "EXPEDIENTE" });
@@ -143,7 +143,7 @@
 
       // En las tierras inestables, la ω no se deja leer: los dígitos oscilan (decorativo).
       if (campoOmega) {
-        const rng = DENDRO.prng.crear(t.id, Math.floor(ahora / 90));
+        const rng = DENDRO.prng.crear(t.codigo, Math.floor(ahora / 90));
         const texto = t.omega.toFixed(4).split("").map((c, i) => (i > 1 && DIGITOS.includes(c) ? DIGITOS[Math.floor(rng() * 10)] : c)).join("");
         campoOmega.region.vectores().texto(campoOmega.x, campoOmega.y, texto, "tierra", { tam: 1 });
       }

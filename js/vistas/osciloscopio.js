@@ -12,7 +12,7 @@
   function crear(ctx) {
     const { estado, ui } = ctx;
     const cfgO = () => window.DENDRO_CONFIG.vectores.osciloscopio;
-    const pareja = () => C.pareja(estado, ui.parejaSeleccionada) || estado.parejas[0];
+    const pareja = () => C.pareja(estado, ui.parejaSeleccionada) || C.pareja(estado, estado.parejaPrincipal);
     let pantalla = null;
 
     function latidos(par) {
@@ -22,8 +22,9 @@
     function dibujar(reg) {
       const par = pareja(), ta = C.tierra(estado, par.a), tb = C.tierra(estado, par.b);
       const ancho = reg.ancho >= 80;
-      C.selector(reg, 0, ancho ? `${par.id} · ${MAYUS(ta.nombre)} / ${MAYUS(tb.nombre)}` : par.id);
-      reg.escribir(1, 0, `PAREJA ${String(estado.parejas.indexOf(par) + 1).padStart(2, "0")}/${estado.parejas.length}`, "textoTenue");
+      C.selector(reg, 0, ancho ? `${par.id} · ${C.nombre(ta)} / ${C.nombre(tb)}` : par.id);
+      const lista = C.parejasNavegables(estado), indice = lista.indexOf(par) + 1;
+      reg.escribir(1, 0, `${estado.activas.length ? "ACTIVA" : "PAREJA"} ${indice || "—"}/${lista.length}`, "textoTenue");
 
       let lecturas;
       if (ancho) {
@@ -31,7 +32,7 @@
         pantalla = reg.caja(0, 1, reg.ancho - anchoLect, reg.alto - 1, { titulo: "CH1 · CH2 · CH1+CH2", doble: false });
         lecturas = reg.caja(reg.ancho - anchoLect, 1, anchoLect, reg.alto - 1, { titulo: "LECTURAS" });
       } else {
-        reg.centrar(1, `${MAYUS(ta.nombre)} / ${MAYUS(tb.nombre)}`, "texto");
+        reg.centrar(1, `${C.nombre(ta)} / ${C.nombre(tb)}`, "texto");
         const altoLect = 9;
         pantalla = reg.caja(0, 2, reg.ancho, reg.alto - 2 - altoLect, { titulo: "CH1 · CH2 · SUMA", doble: false });
         lecturas = reg.caja(0, reg.alto - altoLect, reg.ancho, altoLect, { titulo: "LECTURAS" });
@@ -125,8 +126,8 @@
     }
 
     function cambiarPareja(paso) {
-      const i = estado.parejas.indexOf(pareja());
-      ui.parejaSeleccionada = estado.parejas[(i + paso + estado.parejas.length) % estado.parejas.length].id;
+      const lista = C.parejasNavegables(estado), i = lista.indexOf(pareja());
+      ui.parejaSeleccionada = lista[(i + paso + lista.length) % lista.length].id;
       ctx.redibujar();
     }
 

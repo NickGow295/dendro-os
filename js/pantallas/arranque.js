@@ -33,7 +33,7 @@
     const paso = () => {
       if (i >= tierras.length) return;
       const t = tierras[i++];
-      DENDRO.globo.modelo(t.id, t.globo);
+      DENDRO.globo.modelo(t.semillaGlobo, t.globo);
       setTimeout(paso, 16);
     };
     setTimeout(paso, 400);
@@ -132,7 +132,7 @@
       await linea("");
       if (fase === 1) await linea([{ t: "ADVERTENCIA: ANOMALÍA DE FIRMA EN EL CUADRANTE BAJO", c: "ambar" }], { pausa: 300 });
       if (fase >= 2) {
-        const activas = estado.parejas.filter((p) => ["APROXIMACIÓN", "CONTACTO", "HOSTILIDADES", "INTERFERENCIA"].includes(p.estado)).length;
+        const activas = estado.activas.length;
         await linea([{ t: "CONVERGENCIAS ACTIVAS: " }, { t: String(activas), c: "arma" }]);
         await linea([{ t: "RAMAS AFECTADAS: " }, { t: DENDRO.escritorio.formatoRamas(estado.ramasAfectadas), c: "arma" }], { pausa: 300 });
       }
@@ -189,7 +189,7 @@
 
     return {
       iniciar() {
-        precalcularGlobos(estado.tierras);
+        precalcularGlobos([estado.tierras.porCodigo("MYTH"), ...estado.tierras.nombradas]);
         guion().catch((err) => { if (err !== DENDRO.escritor.CANCELADO) throw err; });
       },
       dibujar,

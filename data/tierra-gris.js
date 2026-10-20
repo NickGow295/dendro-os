@@ -1,4 +1,4 @@
-// Máscara de continentes de nuestra Tierra para Tierra Gris (B-0x09), la única tierra no procedural.
+// Máscara de continentes de nuestra Tierra para Tierra Gris (MYTH·7Y·A4R·G2), la única tierra no procedural.
 // Equirectangular 96×48: columna 0 = longitud −180°, fila 0 = latitud +90°. "#" tierra, "." océano.
 window.DENDRO_MASCARAS = window.DENDRO_MASCARAS || {};
 window.DENDRO_MASCARAS["tierra-gris"] = {

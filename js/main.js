@@ -180,7 +180,8 @@
       `${f.year}-${f.month}-${f.day} ${f.hour}:${f.minute} · ${DENDRO.tau.instante(e.instante)} · FASE ${e.fase} ${e.nombreFase}${e.rectaFinal ? " (RECTA FINAL)" : ""} · ALERTA ${e.nivelAlerta}`,
       `p=${e.p.toFixed(4)}  intensidad=${e.intensidad.toFixed(2)}  ramas=${e.ramasAfectadas}  al colapso=${DENDRO.tau.cuenta(e.paraColapso)}`,
       `principal=${e.parejaPrincipal}  ataques=${e.ataques.length}  registro=${e.registro.length}  caídos=[${e.modulosCaidos.join(", ")}]`,
-      ...e.parejas.map((p) => `${p.id} ${p.estado.padEnd(13)} Δω=${p.deltaOmega.toFixed(4)} sep=${p.separacion.toFixed(2)} ${DENDRO.tau.cuenta(p.paraContacto)}${p.hostil ? " HOSTIL" : ""}`),
+      `catalogadas=${e.ramasCatalogadas}  en colisión=${e.enColision}  activas=${e.activas.length}  N̂=${e.myth.cohesion.toFixed(3)}  guardianes caídos=${e.myth.guardianes.filter((g) => g.caido).length}`,
+      ...e.parejas.filter((p) => p.nombrada).map((p) => `${p.id} ${p.estado.padEnd(13)} Δω=${p.deltaOmega.toFixed(4)} sep=${p.separacion.toFixed(2)} ${DENDRO.tau.cuenta(p.paraContacto)}${p.hostil ? " HOSTIL" : ""}`),
     ].join("\n");
   }
 

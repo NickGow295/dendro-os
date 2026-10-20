@@ -326,7 +326,7 @@ Usos de la intensidad: corrupción de líneas de registro, glitches, fallos de �
 ```
 
 **Parejas generadas** (`catalogo().parejas`, memoizado):
-1. Candidatas: pares de hermanas sin pareja (y, con probabilidad `fraccionPrimas`, de primas), excluyendo MYTH, las nombradas y Sarmiento. Cada rama entra en una pareja como mucho.
+1. Candidatas: pares de hermanas sin pareja (y, con probabilidad `fraccionPrimas`, de primas de la misma primaria), excluyendo MYTH, las 13 primarias, las nombradas, Sarmiento y los nudos por los que pasa el camino de una nombrada (para que el padre de Halcyon no se aniquile antes que Halcyon). Cada rama entra en una pareja como mucho. Cada pareja guarda su `grupo` (0–6 por salto, 7–12 las antiguas).
 2. **Orden**: por grupo de su primaria (salto 1, 2, …, 7 y después las antiguas) y, dentro del grupo, barajado con semilla. Se toman las `parejasGeneradas` primeras. Este orden es el patrón que descubre la Sección de Firmas.
 3. **Instante de contacto** de la j-ésima (j = 1…K):
    ```
@@ -366,7 +366,7 @@ Desde `tf` el colapso prevalece sobre cualquier estado.
 
 **Pareja principal** (la que abre COLISIÓN), en este orden: la nombrada activa (CONTACTO, HOSTILIDADES, INTERFERENCIA) de contacto más reciente; si no hay, cualquier activa de contacto más reciente; la de APROXIMACIÓN más próxima al contacto (nombradas primero); la ESTABLE de contacto más próximo; si todo está resuelto, la de desenlace más reciente.
 
-**Serie de firmas** para las gráficas (§6): `DENDRO.cronologia.serieFirmas(pareja, n)` → `{ puntos: [{ tau, wa, wb, futuro }], marcas: { aproximacion, contacto, tramo, desenlace } }` entre `contacto − 1.3·A` y `contacto + 2·H`. Las firmas convergen hacia el ω medio: `wa = ω̄ + s·Δω/2`, `wb = ω̄ − s·Δω/2` (s = signo de ω_a − ω̄). Tras el desenlace: en fusión, `wa = wb = ω̄`; la rama destruida pasa a `null` (la curva se corta) con una marca roja en su último punto. Es pura: se puede llamar desde las vistas.
+**Serie de firmas** para las gráficas (§6): `DENDRO.cronologia.serieFirmas(pareja, n)` → `{ puntos: [{ tau, instante, wa, wb, futuro }], marcas: { aproximacion, contacto, tramo, desenlace, destruidas, fusion } }` entre `contacto − 1.3·A` y `contacto + 2·H`. Las firmas convergen hacia el ω medio: `wa = ω̄ + s·Δω/2`, `wb = ω̄ − s·Δω/2` (s = signo de ω_a − ω̄). Tras el desenlace: en fusión, `wa = wb = ω̄`; la rama destruida pasa a `null` (la curva se corta) con una marca roja en su último punto. Es pura: se puede llamar desde las vistas. Desde `tf` las dos pasan a `null`. `serieDeltaOmega(pareja, n)` da la minigráfica de Δω de COLISIÓN con el mismo criterio.
 
 ### 4.6 Cohesión de MYTH
 
@@ -378,7 +378,7 @@ N̂(t)  = base · (t ≥ contacto de C-12 ? 0.5 : 1) · (rectaFinal ? (tf − t)
 N̂ = 0 desde tf
 ```
 
-Con los valores de config: N̂ ≈ 0.99 a principios de noviembre, cruza 0.60 el 12-09 hacia las 20:00, ≈ 0.19 justo antes de C-12, ≈ 0.10 después y 0 a las 14:00 del 16/12. Monótona no creciente. Los instantes de los eventos fijos que citan N̂ se ajustan al cruce real al implementar. `Estado.myth = { cohesion, guardianes: [{ id, nombre, titulo, cae, caido }] }` con los instantes de caída de `data/myth.js`.
+Con los valores de config: N̂ ≈ 0.99 a principios de noviembre, cruza 0.60 el 12-09 a las 21:05 (el evento fijo y la caída de Calcina están en ese minuto), ≈ 0.19 justo antes de C-12, ≈ 0.10 después y 0 a las 14:00 del 16/12. Monótona no creciente. Los instantes de los eventos fijos que citan N̂ se ajustan al cruce real al implementar. `Estado.myth = { cohesion, guardianes: [{ id, nombre, titulo, cae, caido }] }` con los instantes de caída de `data/myth.js`.
 
 ### 4.7 Eventos, registro y revelaciones
 
@@ -421,7 +421,7 @@ Estado = {
 }
 ```
 
-Para no recorrer ~1 900 ramas cada minuto, las ramas sin pareja activa no se copian: `tierras.porCodigo(c)` devuelve el nodo del catálogo con su estado (ESTABLE si no tiene pareja).
+Para no recorrer ~1 900 ramas cada minuto, las ramas sin pareja activa no se copian: `tierras.porCodigo(c)` devuelve el nodo del catálogo con su estado (ESTABLE si no tiene pareja; `null` para Sarmiento o un código desconocido; MYTH con su `cohesion`), calculado al pedirlo y memoizado en ese `Estado`. `tierras.nombradas` trae las 24 con su estado y sus eventos. Las parejas llevan `nombrada`. El registro base (todo lo que ocurre hasta `tf`) se calcula una vez y cada minuto solo se recorta.
 
 ## 5. Pantallas y flujo
 

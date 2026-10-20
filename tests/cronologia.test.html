@@ -20,17 +20,22 @@
   <ul id="lista"></ul>
 
   <script src="../config.js"></script>
+  <script src="../data/myth.js"></script>
   <script src="../data/tierras.js"></script>
   <script src="../data/tierra-gris.js"></script>
+  <script src="../data/generacion.js"></script>
   <script src="../data/colisiones.js"></script>
   <script src="../data/eventos.js"></script>
   <script src="../js/nucleo/prng.js"></script>
   <script src="../data/mensajes.js"></script>
   <script src="../data/archivo.js"></script>
   <script src="../js/nucleo/reloj.js"></script>
+  <script src="../js/nucleo/ruido.js"></script>
   <script src="../js/nucleo/tau.js"></script>
+  <script src="../js/nucleo/multiverso.js"></script>
   <script src="../js/nucleo/tema.js"></script>
   <script src="../js/nucleo/cronologia.js"></script>
+  <script src="../js/ui/globo.js"></script>
   <script>
     (function () {
       "use strict";
@@ -40,8 +45,10 @@
       const ms = (x) => DENDRO.reloj.aInstante(x);
       const en = (x) => DENDRO.cronologia.calcularEstado(x);
       const par = (e, id) => e.parejas.find((p) => p.id === id);
-      const tierra = (e, id) => e.tierras.find((t) => t.id === id);
-      const enColision = (e) => e.tierras.filter((t) => !["ESTABLE", "APROXIMACIÓN"].includes(t.estado)).length;
+      const tierra = (e, codigo) => e.tierras.porCodigo(codigo);
+      const enColision = (e) => e.enColision;
+      const VELMORA = "MYTH·4K·7A2·R9", OSTRAKH = "MYTH·4K·7A2·T3", CENIZA = "MYTH·9F·E07·K4", ARBOREA = "MYTH·9F·E07·W1";
+      const DIA = 24 * 3600000;
       const resultados = [];
       const comprobar = (nombre, fn) => {
         let ok = false, detalle = "";
@@ -58,7 +65,11 @@
       comprobar("12-16 13:59: recta final, fase 4, intensidad máxima", () => { const e = en("2026-12-16T13:59"); return e.fase === 4 && e.rectaFinal && e.intensidad === DENDRO_CONFIG.efectos.glitchMaximo; });
       comprobar("12-16 14:00: fase 5 COLAPSO y ramas = ramasAfectadasFinal", () => { const e = en(cr.colapsoTotal); return e.fase === 5 && e.ramasAfectadas === cr.ramasAfectadasFinal && e.paraColapso === 0; });
       comprobar("12-25: sigue en COLAPSO", () => en("2026-12-25T12:00").fase === 5);
-      comprobar("Al menos 4 parejas hostiles", () => en(cr.inicioAlerta).parejas.filter((p) => /hostil/.test(p.postura)).length >= 4);
+      comprobar("Al menos 4 parejas nombradas hostiles", () => en(cr.inicioAlerta).parejas.filter((p) => p.nombrada && /hostil/.test(p.postura)).length >= 4);
+      comprobar("10-27: solo C-01 está en contacto", () => {
+        const e = en("2026-10-27T12:00");
+        return e.parejas.filter((p) => ["CONTACTO", "HOSTILIDADES", "INTERFERENCIA"].includes(p.estado)).map((p) => p.id).join() === "C-01";
+      });
       comprobar("Determinismo: el mismo minuto da el mismo Estado", () => JSON.stringify(en("2026-11-20T15:42")) === JSON.stringify(en(ms("2026-11-20T15:42") + 30000)));
 
       comprobar("Monotonía hora a hora 20/10 → 17/12: ramas, ramas en colisión y fase", () => {
@@ -97,16 +108,16 @@
         }
         return par(en(contacto), "C-03").separacion === 0;
       });
-      comprobar("10-25: Ostrakh ataca a Velmora (antes del contacto)", () => en("2026-10-25T12:00").ataques.some((a) => a.desde === "B-0x02" && a.hacia === "B-0x01"));
+      comprobar("10-25: Ostrakh ataca a Velmora (antes del contacto)", () => en("2026-10-25T12:00").ataques.some((a) => a.desde === OSTRAKH && a.hacia === VELMORA));
       comprobar("11-20: C-03 en HOSTILIDADES con ataques en ambos sentidos", () => {
         const e = en("2026-11-20T12:00");
         const at = e.ataques.filter((a) => a.pareja === "C-03");
-        return par(e, "C-03").estado === "HOSTILIDADES" && at.some((a) => a.desde === "B-0x05") && at.some((a) => a.desde === "B-0x06");
+        return par(e, "C-03").estado === "HOSTILIDADES" && at.some((a) => a.desde === CENIZA) && at.some((a) => a.desde === ARBOREA);
       });
       comprobar("11-20: C-01 resuelta (Velmora sobrevive) y C-02 fusionada", () => {
         const e = en("2026-11-20T12:00");
-        return par(e, "C-01").estado === "SUPERVIVIENTE" && tierra(e, "B-0x01").estado === "SUPERVIVIENTE" &&
-          tierra(e, "B-0x02").estado === "ANIQUILADA" && par(e, "C-02").estado === "FUSIONADA";
+        return par(e, "C-01").estado === "SUPERVIVIENTE" && tierra(e, VELMORA).estado === "SUPERVIVIENTE" &&
+          tierra(e, OSTRAKH).estado === "ANIQUILADA" && par(e, "C-02").estado === "FUSIONADA";
       });
       comprobar("C-12: la aproximación empieza el 10/12, como dice el registro", () =>
         par(en("2026-12-10T05:00"), "C-12").estado === "ESTABLE" && par(en("2026-12-10T07:00"), "C-12").estado === "APROXIMACIÓN");
@@ -128,7 +139,7 @@
         return a.every((ev) => !ev.corrupta || marca.get(ev.instante + ev.texto)) || "alguna entrada corrupta se limpia";
       });
       comprobar("El registro no muestra eventos futuros", () => { const t = ms("2026-11-20T12:00"); return en(t).registro.every((ev) => ev.instante <= t); });
-      comprobar("Tierra Gris usa la máscara real", () => tierra(en(cr.inicioAlerta), "B-0x09").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
+      comprobar("Tierra Gris usa la máscara real", () => tierra(en(cr.inicioAlerta), "MYTH·7Y·A4R·G2").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
 
       // Ejes para las vistas
       comprobar("serieRamas: de la primera colisión al colapso, creciente, con el futuro marcado", () => {
@@ -147,6 +158,127 @@
         }
         return true;
       });
+      // Catálogo del multiverso (02-diseno.md §4.4)
+      const mv = DENDRO_CONFIG.multiverso;
+      const cat = DENDRO.multiverso.catalogo();
+      const huella = (c) => DENDRO.prng.hash(c.nodos.map((n) => n.codigo + n.omega + n.regimen + n.tecnologia).join() +
+        c.parejas.map((p) => p.id + p.a + p.b + p.contacto + p.postura + p.desenlace).join());
+      comprobar(`Catálogo: ${cat.total} ramas, entre ${mv.ramasMin} y ${mv.ramasMax}`, () => cat.total >= mv.ramasMin && cat.total <= mv.ramasMax);
+      comprobar("Catálogo: idéntico al generarlo de nuevo", () => {
+        const antes = huella(cat);
+        window.DENDRO_DATOS.tierras = [...window.DENDRO_DATOS.tierras];   // invalida la memoria del catálogo
+        const otro = DENDRO.multiverso.catalogo();
+        return otro !== cat && huella(otro) === antes && otro.total === cat.total;
+      });
+      comprobar("Catálogo: códigos únicos con segmentos de 2, 3, 2 y 1 caracteres sin I ni O", () => {
+        const re = /^MYTH(·[0-9A-HJ-NP-Z]{2}(·[0-9A-HJ-NP-Z]{3}(·[0-9A-HJ-NP-Z]{2}(·[0-9A-HJ-NP-Z])?)?)?)?$/;
+        const malo = cat.nodos.find((n) => !re.test(n.codigo));
+        return (!malo && new Set(cat.nodos.map((n) => n.codigo)).size === cat.nodos.length) || (malo ? malo.codigo : "códigos repetidos");
+      });
+      comprobar("Catálogo: 13 primarias, 7 jóvenes con saltos 1–7", () => {
+        const prim = cat.nodos.filter((n) => n.nivel === 1), jovenes = prim.filter((n) => n.joven);
+        return prim.length === 13 && jovenes.map((n) => n.salto).sort().join() === "1,2,3,4,5,6,7";
+      });
+      comprobar("Catálogo: las 24 nombradas en su código, con su nombre", () =>
+        window.DENDRO_DATOS.tierras.every((t) => cat.porCodigo[t.codigo] && cat.porCodigo[t.codigo].nombre === t.nombre && cat.porCodigo[t.codigo].nombrada) &&
+        cat.nodos.filter((n) => n.nombrada).length === 24);
+      comprobar("Catálogo: Sarmiento reservado, de baja y fuera del total", () => {
+        const s = cat.porCodigo["MYTH·4K·7A2·S5"];
+        return !!s && s.baja && cat.total === cat.nodos.length - 1 && en(cr.inicioAlerta).tierras.porCodigo("MYTH·4K·7A2·S5") === null;
+      });
+      comprobar("Catálogo: parejas nombradas entre hermanas (C-08, madre e hija)", () => window.DENDRO_DATOS.colisiones.every((p) => {
+        const a = cat.porCodigo[p.a], b = cat.porCodigo[p.b];
+        return a.padre === b.padre || a.codigo === b.padre || b.codigo === a.padre;
+      }));
+      comprobar("Catálogo: cada rama en una pareja como mucho; generadas sin nombradas", () => {
+        const vistas = new Set();
+        for (const p of [...window.DENDRO_DATOS.colisiones, ...cat.parejas]) for (const c of [p.a, p.b]) { if (vistas.has(c)) return "repetida " + c; vistas.add(c); }
+        return cat.parejas.every((p) => !cat.porCodigo[p.a].nombrada && !cat.porCodigo[p.b].nombrada);
+      });
+      comprobar("Disposición: un punto por rama dibujada y búsqueda del más cercano", () => {
+        const d = DENDRO.multiverso.disposicion(), c = VELMORA, q = d.posiciones[c];
+        return Object.keys(d.posiciones).length === cat.total && d.cercano(q.x + 0.0005, q.y, 0.05) === c;
+      });
+
+      // Cadena exponencial (02-diseno.md §4.5)
+      const parejasCadena = en(cr.inicioAlerta).parejas, generadas = parejasCadena.filter((p) => !p.nombrada);
+      comprobar(`Cadena: ${generadas.length} parejas generadas (config: ${mv.cascada.parejasGeneradas})`, () => generadas.length === mv.cascada.parejasGeneradas);
+      comprobar("Cadena: C-01 es el primer contacto y la primera generada toca ~6 ciclos después", () => {
+        const primera = parejasCadena.reduce((m, p) => (p.contacto < m.contacto ? p : m));
+        const g = Math.min(...generadas.map((p) => p.contacto));
+        const ciclos = (g - ms(cr.primeraColision)) / DENDRO.tau.ciclo();
+        return (primera.id === "C-01" && ciclos > 5 && ciclos < 7.5) || `${primera.id}, ${ciclos.toFixed(2)} c`;
+      });
+      comprobar("Cadena: todas antes del colapso y con ids por orden de contacto", () => generadas.every((p, i) =>
+        p.contacto < ms(cr.colapsoTotal) && p.id === "C-" + String(13 + i).padStart(4, "0") && (i === 0 || p.contacto >= generadas[i - 1].contacto)));
+      comprobar("Cadena: los contactos por semana completa crecen", () => {
+        const semanas = [];
+        for (const p of generadas) { const k = Math.floor((p.contacto - ms(cr.primeraColision)) / (7 * DIA)); semanas[k] = (semanas[k] || 0) + 1; }
+        const completas = Math.floor((ms(cr.colapsoTotal) - ms(cr.primeraColision)) / (7 * DIA));
+        const lista = Array.from(semanas, (x) => x || 0).slice(0, completas);
+        return lista.every((x, i) => i === 0 || x > lista[i - 1]) || lista.join(" ");
+      });
+      comprobar("Cadena: unas 60 en las últimas 14 horas", () => {
+        const n = generadas.filter((p) => p.contacto >= ms(cr.colapsoTotal) - 14 * 3600000).length;
+        return (n >= 50 && n <= 70) || String(n);
+      });
+      comprobar("Cadena: el orden sigue los saltos (salto 1 … 7 y después las antiguas)", () => generadas.every((p, i) => i === 0 || p.grupo >= generadas[i - 1].grupo));
+      comprobar("Cadena: una fracción de las generadas es hostil y ataca", () => {
+        const hostiles = generadas.filter((p) => /hostil/.test(p.postura)).length / generadas.length;
+        return (hostiles > 0.2 && hostiles < 0.4 && en("2026-12-05T12:00").ataques.some((a) => a.pareja.length === 6)) || hostiles.toFixed(2);
+      });
+      comprobar("Ramas en colisión: crecen de forma exponencial (más en la última semana que en todo noviembre)", () => {
+        const a = en("2026-11-01T00:00").enColision, b = en("2026-12-01T00:00").enColision, c = en("2026-12-08T00:00").enColision, d = en("2026-12-15T00:00").enColision;
+        return (d - c > b - a && b > a && en(cr.colapsoTotal).enColision === 2 * parejasCadena.length) || [a, b, c, d].join(" ");
+      });
+
+      // Cohesión N̂ y guardianes (02-diseno.md §4.6)
+      comprobar("N̂: 1 antes del contacto, no crece hora a hora, 0 en el colapso", () => {
+        if (en("2026-10-27T03:16").myth.cohesion !== 1 || en(cr.colapsoTotal).myth.cohesion !== 0) return "extremos";
+        let antes = 2;
+        for (let t = ms(cr.primeraColision); t <= ms(cr.colapsoTotal); t += 3600000) {
+          const n = en(t).myth.cohesion;
+          if (n > antes) return "crece en τ " + DENDRO.tau.corto(t);
+          antes = n;
+        }
+        return true;
+      });
+      comprobar("N̂ cruza 0.60 el 12-09", () => en("2026-12-09T00:00").myth.cohesion > 0.6 && en("2026-12-10T00:00").myth.cohesion < 0.6);
+      comprobar("N̂: el desgarro de C-12 la parte a la mitad", () => {
+        const c12 = ms("2026-12-14T23:58");
+        const r = en(c12).myth.cohesion / en(c12 - 60000).myth.cohesion;
+        return (r > 0.45 && r < 0.51) || r.toFixed(3);
+      });
+      comprobar("Guardianes: cinco, caen en orden y el último a las 14:00 del 16/12", () => {
+        const g = en("2026-12-16T13:59").myth.guardianes, h = en(cr.colapsoTotal).myth.guardianes;
+        return g.length === 5 && g.filter((x) => x.caido).length === 4 && h.every((x) => x.caido) && en("2026-12-09T12:00").myth.guardianes.every((x) => !x.caido);
+      });
+      comprobar("serieCohesion: de 1 a 0, sin crecer, con el futuro marcado", () => {
+        const s = en("2026-11-20T12:00").ejes.serieCohesion;
+        return s[0].valor > 0.99 && s[s.length - 1].valor === 0 && s.some((x) => x.futuro) && s.every((x, i) => i === 0 || x.valor <= s[i - 1].valor);
+      });
+
+      // Firmas de pareja (RF-19)
+      comprobar("serieFirmas: convergen al contacto, se cortan en la destruida y se unen en la fusión", () => {
+        const e = en("2026-12-14T12:00");
+        const c01 = DENDRO.cronologia.serieFirmas(par(e, "C-01"), 200), c02 = DENDRO.cronologia.serieFirmas(par(e, "C-02"), 200);
+        const inicial = c01.puntos[0], contacto = c01.puntos.find((x) => x.tau >= c01.marcas.contacto), tras = c01.puntos[c01.puntos.length - 1];
+        const fus = c02.puntos[c02.puntos.length - 1];
+        const d0 = par(e, "C-01").deltaOmega0;
+        return (Math.abs(Math.abs(inicial.wa - inicial.wb) - d0) < 1e-9 && Math.abs(contacto.wa - contacto.wb) < 1e-9 &&
+          tras.wb === null && tras.wa !== null && c01.marcas.destruidas.join() === OSTRAKH && fus.wa === fus.wb && fus.wa !== null) || "falla";
+      });
+
+      // Globos (T6.6)
+      comprobar("Globos: caché limitada para las generadas; MYTH y nombradas fijas", () => {
+        const fijosAntes = DENDRO.globo.enCache().fijos;
+        DENDRO.globo.modelo("B-0x01", {});
+        DENDRO.globo.modelo("B-0x01", {});
+        for (const n of cat.nodos.filter((x) => !x.nombrada && !x.raiz).slice(0, mv.cacheGlobos + 10)) DENDRO.globo.modelo(n.semillaGlobo, n.globo, true);
+        const c = DENDRO.globo.enCache();
+        return (c.generados === mv.cacheGlobos && c.fijos === fijosAntes + 1) || JSON.stringify(c);
+      });
+
       comprobar("calcularEstado tarda menos de 20 ms de media", () => {
         const t0 = performance.now();
         for (let i = 0; i < 20; i++) en(ms("2026-12-12T12:00") + i * 60000);
