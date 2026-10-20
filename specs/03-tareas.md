@@ -74,17 +74,74 @@
 - [x] **T4.4** V9 CONTENCIÓN (acciones locales, sin afectar la cronología). *(RF-05)*
 - [x] **T4.5** V0 TERMINAL: registro de comandos, historial, Tab, comandos de `01-requisitos.md RF-05` y ocultos de `04-lore.md §8` (incluidos los de varias palabras), enlaces a vistas, latencia deliberada (`02-diseno.md §6`). *(RF-05, RF-07)*
 
-## Fase 5 — Degradación y colapso
+## Fallos previos a la Fase 5 (commit propio)
 
-- [ ] **T5.1** `glitch.js`: corrupción de texto en la rejilla y temblor/cortes/desfases en la capa vectorial según `intensidad`. *(RF-07)*
-- [ ] **T5.2** Vistas caídas por umbral (`02-diseno.md §4.4`), tachadas en las pestañas. *(RF-07)*
-- [ ] **T5.3** Pantalla de colapso del 16/12 justo tras el encendido con la secuencia de `04-lore.md §9` (Árbol desintegrándose en vectores); franja ámbar con texto oscuro y cuerpo blanco; `{ramas}` desde config; terminal limitada a `comandosPermitidos`; días desde el colapso. *(RF-08)*
+- [x] **TF.1** TERMINAL: `escritorio.abrir()` no llamaba a `vista.iniciar()`; la terminal no aceptaba escritura hasta el primer Enter. *(RF-05)*
+- [x] **TF.2** MÓVIL: el `mousedown` de compatibilidad tras un toque quitaba el foco al campo oculto y cerraba el teclado. Se cancela en `#vidrio` y el foco se pide también en `click` (iOS). Probado con emulación táctil por CDP. *(RNF-04)*
 
-**Verificación:** recorrer `?fecha=` 2026-10-19, 10-20, 10-27, 11-15, 12-05, 12-15, 12-16 y 12-25.
+## Fase 5 — Tiempo por minutos y meta-tiempo τ
 
-## Fase 6 — Pulido y entrega
+> Migración: el motor pasa de fechas `AAAA-MM-DD` a instantes. Hasta terminar esta fase las vistas siguen funcionando con un adaptador (`estado.fecha` derivado del instante) que se elimina en T5.6.
 
-- [ ] **T6.1** Revisión móvil (pestañas táctiles, vistas en vertical, teclado en pantalla). *(RNF-04)*
-- [ ] **T6.2** Revisión de rendimiento de las vistas, el shader y el audio (60 fps; la escritura no se bloquea). *(RNF-02)*
-- [ ] **T6.3** Comprobar todos los criterios de `01-requisitos.md §5`.
-- [ ] **T6.4** `README.md` del proyecto: cómo editar `config.js` y `data/`, cómo probar fechas, cómo publicar en GitHub Pages.
+- [ ] **T5.1** `config.js`: `cronologia` con instantes y `inicioRectaFinal`, `refrescoSegundos`, bloque `tau`; `colapsoTotal: "2026-12-16T14:00"`. *(RF-01, RF-09, RF-14)*
+- [ ] **T5.2** `reloj.js`: `instanteActual`, `aInstante` con la zona de config, `diaLocal`, `?fecha=` con hora que sigue corriendo, `&congelar=1`, `alCambiarMinuto`, `alLlegar`. *(RF-01, RF-10)*
+- [ ] **T5.3** `tau.js`: `de`, `instante`, `reloj`, `corto`, `duracion`, `cuenta` (`02-diseno.md §4.2`). *(RF-14)*
+- [ ] **T5.4** `cronologia.js` por instantes: progreso continuo, fases con recta final, intensidad, ventanas A/H/K, `paraContacto`, `paraColapso`, registro con instantes y filtrado al minuto. Parejas nombradas con hora de contacto (`04-lore.md §5.1`). *(RF-01, RF-06)*
+- [ ] **T5.5** Estado vivo: `main.js` recalcula cada minuto; `ctx.estado` como getter; `actualizar(estado)` en el escritorio y en las vistas con estado propio (TERMINAL, COMUNICACIONES, ARCHIVO, CONTENCIÓN); las demás se redibujan. *(RF-01)*
+- [ ] **T5.6** Sustituir toda fecha u hora visible por τ: barra de estado (con latidos), arranque, registro, expedientes, gráficas, cuentas atrás, terminal, mensajes. Quitar el adaptador `estado.fecha`. *(RF-14)*
+- [ ] **T5.7** Pruebas y skill `verificar-cronologia` con instantes: criterios de §5, monotonía por hora, 13:59 / 14:00, ninguna fecha en el texto de pantalla. *(RF-01, RF-14)*
+
+**Verificación:** `?fecha=2026-10-27T03:16` sin colisiones y `03:17` con Velmora/Ostrakh en contacto; con `?fecha=2026-12-16T13:58` el escritorio pasa solo a fase 5 a las 14:00 (la pantalla de colapso en vivo completa llega en T9.3); en el tubo no aparece ninguna fecha en las fechas clave.
+
+## Fase 6 — Multiverso masivo y MYTH
+
+- [ ] **T6.1** `data/myth.js` (MYTH, 13 primarias con origen y salto, cinco guardianes con instante de caída), `data/generacion.js` y `config.multiverso`. *(RF-15, RF-16)*
+- [ ] **T6.2** Migrar `data/tierras.js` y `data/colisiones.js` a códigos (`04-lore.md §4.2`), con `semillaGlobo` = designación antigua; textos de `data/eventos.js` sin designaciones hexadecimales. *(RF-15, RF-13)*
+- [ ] **T6.3** `multiverso.js`: catálogo determinista (reservas, códigos, datos generados, 1 500–2 000 ramas) y disposición normalizada con rejilla espacial. *(RF-15)*
+- [ ] **T6.4** Parejas generadas: candidatas, orden por saltos, contactos exponenciales, postura/desenlace/armas; integración en `calcularEstado` (`activas`, `enColision`, `ataques`, registro agrupado por pulso). *(RF-15, RF-06)*
+- [ ] **T6.5** Cohesión N̂ y guardianes en el `Estado` (`02-diseno.md §4.6`); `serieFirmas`. *(RF-16, RF-19)*
+- [ ] **T6.6** `globo.js`: caché limitada para ramas generadas; MYTH y las 24 fijas. *(RF-13, RNF-02)*
+- [ ] **T6.7** Pruebas del catálogo y de la cadena (`02-diseno.md §8`); `calcularEstado` < 20 ms. *(RNF-02, RNF-06)*
+
+**Verificación:** dos cargas dan el mismo catálogo y el mismo `N`; el 10-27 solo C-01 está en contacto; las ramas en colisión crecen exponencialmente hasta el colapso; N̂ cruza 0.60 el 12-09.
+
+## Fase 7 — Historia: canales, archivo, credencial y revelaciones
+
+- [ ] **T7.1** `sha256.js`, `config.acceso`, `DENDRO.local.credencial()`; orden `credencial` con eco `*`, `credencial cerrar` / `revocar`; `◆DIR` en la barra. *(RF-18)*
+- [ ] **T7.2** `data/mensajes.js` con canales: G-01…G-09, G-X y D-01…D-17 (`04-lore.md §9`), integrando los antiguos M-001…M-008. *(RF-17)*
+- [ ] **T7.3** V7 COMUNICACIONES con dos pestañas, canal de dirección sellado y `visibleSinCredencial`. *(RF-17)*
+- [ ] **T7.4** `data/archivo.js` ampliado (`04-lore.md §10`): cabeceras de documentación interna, manuales y procedimientos, clasificados con `desde`, fragmentos solo con credencial, pista de la clave en PROC-ADM-01. *(RF-17, RF-18)*
+- [ ] **T7.5** V8 ARCHIVO con carpetas, cabecera, sellado y clasificados ocultos hasta su emisión. *(RF-17)*
+- [ ] **T7.6** `data/revelaciones.js` y `Estado.hitos`; eventos fijos nuevos y corruptos fijos (`04-lore.md §7–8`); órdenes ocultas `omega i`, `sarmiento`, `escarda`, `myth`, `injertador` y `n-hat` con la N̂ de MYTH. *(RF-17)*
+- [ ] **T7.7** EXPEDIENTE: fichas cortas de ramas generadas y ficha de MYTH con cohesión y guardianes sellados. *(RF-05, RF-16)*
+
+**Verificación:** recorrer el calendario de revelaciones con `?fecha=` en cada hito, con y sin credencial; la clave del lore abre el canal y los clasificados, y siguen abiertos al recargar.
+
+## Fase 8 — Vistas rediseñadas
+
+- [ ] **T8.1** `vectores.js`: `trazos` y `puntos` por lotes; rampa `rampa0…7` en `tema.js`. *(RNF-02)*
+- [ ] **T8.2** Gestos en `main.js` (rueda, arrastre, pellizco) y `gesto(g)` en el contrato de vista. *(RNF-04)*
+- [ ] **T8.3** `ui/lista.js`: lista filtrable con chips, filtro por texto y táctil. *(RF-05)*
+- [ ] **T8.4** V2 ÁRBOL: catálogo completo por lotes, rampa de convergencia, misiles animados, zoom y desplazamiento, MYTH siempre visible y minimapa, sustrato con la Estación Raíz, selección por rejilla espacial. ≥ 60 fps. *(RF-05, RF-15, RNF-02)*
+- [ ] **T8.5** V1 COLISIÓN: selector de parejas activas con lista y filtro; gráfica de historia de pareja (componente común). *(RF-05, RF-19)*
+- [ ] **T8.6** V4 OSCILOSCOPIO: convergencia de frecuencias, ganancia, saturación, picos rojos, desvanecimiento. *(RF-19)*
+- [ ] **T8.7** V3 MONITOR: página de activas generadas, curva de N̂ y gráfica de historia de pareja. *(RF-05, RF-19)*
+- [ ] **T8.8** `data/protocolos.js` y V9 CONTENCIÓN rediseñada; `ui.efectosContencion` aplicado en COLISIÓN, ÁRBOL, OSCILOSCOPIO y EXPEDIENTE; orden `contener` (alias `aislar`). *(RF-20)*
+
+**Verificación:** con `?fecha=2026-11-20`, C-03 en hostilidades con misiles en el ÁRBOL y picos rojos en el OSCILOSCOPIO; con `?fecha=2026-12-12` y `?fps=1`, el ÁRBOL a ≥ 60 fps con zoom; aplicar PC-14 mejora la pareja ~30 s y el `Estado` es idéntico antes y después.
+
+## Fase 9 — Degradación y colapso
+
+- [ ] **T9.1** `glitch.js`: corrupción de texto en la rejilla y temblor/cortes/desfases en la capa vectorial según `intensidad`; reloj τ irregular en la fase 4. *(RF-07, RF-14)*
+- [ ] **T9.2** Vistas caídas por umbral (`02-diseno.md §4.3`), tachadas en las pestañas. *(RF-07)*
+- [ ] **T9.3** Pantalla de colapso: al encender tras `tf` y **en vivo a las 14:00** (ráfaga de glitches → error fatal), con la secuencia de `04-lore.md §13` tras una tecla (Árbol desintegrándose en vectores; las ramas de la silueta, las últimas); franja ámbar con texto oscuro y cuerpo blanco; `{ramas}` desde config; terminal limitada a `comandosPermitidos`; τ desde el colapso. *(RF-08)*
+- [ ] **T9.4** Silueta del Injertador en el ÁRBOL el 16/12 y vislumbres desde el 12-06 (`04-lore.md §3.1`). *(RF-17)*
+
+**Verificación:** recorrer `?fecha=` 2026-10-19, 10-20, 10-27, 11-15, 12-05, 12-15, 12-16T00:01, 12-16T13:58 (esperando al colapso), 12-16T14:00 y 12-25.
+
+## Fase 10 — Pulido y entrega
+
+- [ ] **T10.1** Revisión móvil con emulación táctil real (pestañas, vistas en vertical, teclado del sistema, pellizco y arrastre en el ÁRBOL, listas filtrables). *(RNF-04)*
+- [ ] **T10.2** Revisión de rendimiento de las vistas, el shader, el audio y el recálculo por minuto (60 fps; la escritura no se bloquea). *(RNF-02)*
+- [ ] **T10.3** Comprobar todos los criterios de `01-requisitos.md §5`.
+- [ ] **T10.4** `README.md` del proyecto: cómo editar `config.js` y `data/`, cómo cambiar la clave de dirección (generar su hash), cómo probar instantes, cómo publicar en GitHub Pages.
