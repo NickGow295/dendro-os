@@ -17,7 +17,11 @@
     const docs = () => estado.archivo.filter((d) => d.carpeta === CARPETAS[carpeta]);
     const actual = () => docs()[elegido];
     const abierto = (d) => (!d.clasificado || credencial()) && (!d.desbloqueo || DENDRO.local.desbloqueado(d.desbloqueo));
-    const motivoSello = (d) => (d.desbloqueo && !DENDRO.local.desbloqueado(d.desbloqueo) ? "REQUIERE AUTORIZACIÓN DE NIVEL NEGRO" : "REQUIERE CREDENCIAL DE DIRECCIÓN");
+    // Con la credencial ya abierta, el NEGRO lo dice: la credencial de dirección no basta.
+    const motivoSello = (d) => {
+      if (!d.desbloqueo || DENDRO.local.desbloqueado(d.desbloqueo)) return "REQUIERE CREDENCIAL DE DIRECCIÓN";
+      return credencial() ? "LA CREDENCIAL DE DIRECCIÓN NO BASTA · REQUIERE AUTORIZACIÓN DE NIVEL NEGRO" : "REQUIERE AUTORIZACIÓN DE NIVEL NEGRO";
+    };
     const texto = (l) => (typeof l === "string" ? l : credencial() ? l.direccion : l.sello);
     const enTau = (x) => `τ ${x.toFixed(3)}`;
 

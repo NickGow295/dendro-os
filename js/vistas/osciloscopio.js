@@ -142,7 +142,8 @@
       };
       const dosMuertas = ampA <= 0.001 && ampB <= 0.001;
       rotulo(banda * 2, dosMuertas ? "CH1+CH2 · SIN SEÑAL" : `CH1+CH2 · ×${g.toFixed(2)}`, dosMuertas ? "textoTenue" : "ambar");
-      v.polilinea(traza(v, banda * 2, banda, suma), par.estado === "HOSTILIDADES" ? "arma" : "ambar");
+      // La suma sigue ámbar en hostilidades: así los picos rojos se distinguen encima.
+      v.polilinea(traza(v, banda * 2, banda, suma), "ambar");
       if (!dosMuertas && !fusion && !saturada) {
         const df = fb - fa;
         const envolvente = (signo) => traza(v, banda * 2, banda, (x) => signo * g * AMPLITUD_SUMA * Math.abs(Math.cos(Math.PI * df * tau(x))));
