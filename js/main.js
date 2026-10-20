@@ -227,6 +227,11 @@
     document.addEventListener("keydown", alTeclear);
     $("vidrio").addEventListener("pointerdown", alPulsarPantalla);
     $("vidrio").addEventListener("pointermove", alMoverPuntero);
+    // El mousedown (también el de compatibilidad que sigue a un toque) llevaría el foco al body y
+    // cerraría el teclado del móvil recién abierto por el campo oculto.
+    $("vidrio").addEventListener("mousedown", (ev) => ev.preventDefault());
+    // iOS solo abre el teclado si el foco se pide dentro de un click; enfocar() no hace nada sin petición.
+    $("vidrio").addEventListener("click", () => DENDRO.teclado.enfocar());
 
     if (cfg().debug.mostrarFPS || parametro("fps") === "1") alternarMedidor();
 

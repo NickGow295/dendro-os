@@ -77,6 +77,7 @@
       activa = def ? def.crear(ctx) : enConstruccion(entrada);
       transicion = performance.now();
       dibujar();
+      if (activa.iniciar) activa.iniciar();
       DENDRO.vectores.marcarSucio();
     }
 
