@@ -146,14 +146,8 @@
       },
     },
     {
-      nombre: "aislar", uso: "<código|nombre>", ayuda: "aislante de emergencia (local)",
-      ejecutar: (args, e) => {
-        const t = buscarTierra(e, args.join(" "));
-        if (!t) return [L(T("INDIQUE UNA RAMA: aislar ceniza", "arma"))];
-        const texto = ["ANIQUILADA", "COLAPSO"].includes(t.estado) ? "OBJETIVO SIN SEÑAL · ACCIÓN ABORTADA" : "AISLANTE ACTIVADO · SIN EFECTO MEDIBLE EN Δω";
-        DENDRO.local.registrar("CONTENCIÓN", `AISLAR RAMA (TERMINAL) · ${t.codigo} ${C.nombre(t)} · ${texto}`);
-        return [L(T(`${t.codigo} ${t.nombre ? MAYUS(t.nombre) : ""}: `, "texto"), T(texto, texto.startsWith("OBJETIVO") ? "arma" : "exito"))];
-      },
+      nombre: "contener", alias: ["aislar"], uso: "<PC-xx> <objetivo>", ayuda: "prepara un protocolo de contención",
+      ejecutar: (args, e, ctx, sesion, nombre) => contener(nombre === "aislar" ? ["PC-40", ...args] : args, e, ctx, sesion),
     },
     {
       nombre: "credencial", uso: "[cerrar]", ayuda: "credencial de dirección",
@@ -288,6 +282,33 @@
     },
   ];
 
+  // contener <PC-xx> <objetivo>: valida protocolo y objetivo y deja CONTENCIÓN preparada (aislar = PC-40).
+  function contener(args, e, ctx, sesion) {
+    const codigo = (args[0] || "").toUpperCase().replace(/^PC(\d)/, "PC-$1");
+    const proto = e.protocolos.find((p) => p.codigo === codigo);
+    if (!proto) return [L(T("PROTOCOLO DESCONOCIDO. CATÁLOGO: ", "arma"), T(e.protocolos.map((p) => p.codigo).join(" "), "ambar"))];
+    if (e.modulosCaidos.includes("contencion")) return [L(T("SIN ENERGÍA EN EL SUSTRATO.", "arma"))];
+    const texto = args.slice(1).join(" ");
+    let objetivo = null;
+    if (proto.objetivo === "myth") objetivo = "MYTH";
+    else if (proto.objetivo === "pareja") {
+      const par = C.pareja(e, texto.toUpperCase()) || C.pareja(e, texto.toUpperCase().replace(/^C-?(\d+)$/,(m, n) => (n.length <= 2 ? "C-" + n.padStart(2, "0") : "C-" + n.padStart(4, "0"))));
+      objetivo = par ? par.id : null;
+    } else {
+      const t = buscarTierra(e, texto);
+      objetivo = t ? t.codigo : null;
+    }
+    if (!objetivo) return [L(T(`INDIQUE UN OBJETIVO: ${proto.objetivo === "pareja" ? "contener PC-14 C-03" : "contener PC-11 ceniza"}`, "arma"))];
+    if (!C.admite(proto, objetivo, e)) return [L(T(`${proto.codigo} NO ADMITE ${objetivo} EN SU ESTADO ACTUAL.`, "arma"))];
+    ctx.ui.contencionPendiente = { protocolo: proto.codigo, objetivo };
+    sesion.pendiente = "contencion";
+    return [
+      L(T(`${proto.codigo} ${proto.nombre}`, "ambar"), T(` · ${objetivo}`, "texto")),
+      L(T(proto.efecto, "textoTenue")),
+      L(T("[ENTER] ABRIR CONTENCIÓN", "ambarTenue")),
+    ];
+  }
+
   // Dónde leen los sensores la firma imaginaria: bajo la primaria que está cayendo, y más abajo cada vez.
   function posicionFirma(e) {
     if (e.hitos.silueta) return "BASE DE MYTH";
@@ -305,7 +326,7 @@
   function analizar(linea) {
     const limpia = linea.trim().toLowerCase().replace(/\s+/g, " ");
     for (const { n, o } of NOMBRES) {
-      if (limpia === n || limpia.startsWith(n + " ")) return { orden: o, args: limpia.slice(n.length).trim().split(" ").filter(Boolean) };
+      if (limpia === n || limpia.startsWith(n + " ")) return { orden: o, nombreUsado: n, args: limpia.slice(n.length).trim().split(" ").filter(Boolean) };
     }
     return { orden: null, args: [] };
   }
@@ -406,7 +427,7 @@
       historial.unshift(linea);
       posHistorial = -1;
       sesion.pendiente = null;
-      const { orden, args } = analizar(linea);
+      const { orden, args, nombreUsado } = analizar(linea);
       const rng = DENDRO.prng.crear(estado.dia, "terminal", ++cuenta);
       const lat = cfg().texto.latenciaTerminal;
       const espera = (lat.minMs + (lat.maxMs - lat.minMs) * estado.intensidad) * (0.7 + 0.6 * rng());
@@ -426,7 +447,7 @@
         if (rng() < 0.5) consola.agregar(L(T("TIEMPO DE ESPERA AGOTADO", "arma")));
         else consola.agregar(L(T(Array.from({ length: 36 }, () => BASURA[Math.floor(rng() * BASURA.length)]).join(""), "arma")));
       } else {
-        const lineas = orden.ejecutar(args, estado, ctx, sesion);
+        const lineas = orden.ejecutar(args, estado, ctx, sesion, nombreUsado);
         if (sesion.limpiar) { sesion.limpiar = false; consola.limpiar(); }
         await imprimir(lineas === null ? desconocida : lineas);
       }

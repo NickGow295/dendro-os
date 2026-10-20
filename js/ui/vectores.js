@@ -107,6 +107,24 @@
       },
       circulo(cx, cy, r, c, o) { trazo(c, o, (k) => k.arc(px(cx), py(cy), Math.max(0, r * u), 0, Math.PI * 2)); },
       arco(cx, cy, r, desde, hasta, c, o) { trazo(c, o, (k) => k.arc(px(cx), py(cy), Math.max(0, r * u), desde, hasta)); },
+      // Lote de segmentos [x1, y1, x2, y2, …] en un solo trazo (el ÁRBOL dibuja miles así).
+      trazos(segmentos, c, o) {
+        if (segmentos.length < 4) return;
+        trazo(c, o, (k) => { for (let i = 0; i + 3 < segmentos.length; i += 4) { k.moveTo(px(segmentos[i]), py(segmentos[i + 1])); k.lineTo(px(segmentos[i + 2]), py(segmentos[i + 3])); } });
+      },
+      // Lote de puntos [x, y, …] rellenos en una sola pasada; o.tam en px CSS.
+      puntos(lista, c, o) {
+        o = o || {};
+        if (lista.length < 2) return;
+        const r = (o.tam || 1.6) * m.escala;
+        recortado((k) => {
+          k.globalAlpha = o.alfa === undefined ? 1 : o.alfa;
+          k.fillStyle = color(c);
+          k.beginPath();
+          for (let i = 0; i + 1 < lista.length; i += 2) { const x = px(lista[i]), y = py(lista[i + 1]); k.moveTo(x + r, y); k.arc(x, y, r, 0, Math.PI * 2); }
+          k.fill();
+        });
+      },
       curva(x1, y1, cx, cy, x2, y2, c, o) { trazo(c, o, (k) => { k.moveTo(px(x1), py(y1)); k.quadraticCurveTo(px(cx), py(cy), px(x2), py(y2)); }); },
       punto(x, y, c, o) {
         o = o || {};

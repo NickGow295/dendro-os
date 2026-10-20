@@ -56,7 +56,9 @@
   function crear({ estado: inicial, salir }) {
     const P = DENDRO.pantalla;
     let estado = inicial;
-    const ui = { parejaSeleccionada: estado.parejaPrincipal, tierraSeleccionada: null };
+    // Estado de interfaz compartido entre vistas (no es cronología): selección, cámara del ÁRBOL y mejoras
+    // transitorias de contención { objetivo, protocolo, hasta } (hasta en performance.now()).
+    const ui = { parejaSeleccionada: estado.parejaPrincipal, tierraSeleccionada: null, camara: null, efectosContencion: [] };
     let activa = null, entradaActiva = null, transicion = -Infinity, reloj = 0, pestanas = [];
 
     const regionVista = () => P.region(0, 1, P.columnas, P.filas - 2);
@@ -77,6 +79,7 @@
       entradaActiva = entrada;
       const def = DENDRO.vistas.obtener(id);
       activa = def ? def.crear(ctx) : enConstruccion(entrada);
+      DENDRO.teclado.usarTab(() => !!(activa && activa.usaTab));
       transicion = performance.now();
       dibujar();
       if (activa.iniciar) activa.iniciar();
@@ -184,6 +187,8 @@
       tecla(ev) {
         // Con la terminal esperando respuesta, Esc interrumpe la orden en vez de salir de la vista.
         if (ev.key === "Escape" && activa && activa.ocupada && activa.ocupada()) { activa.tecla(ev); return; }
+        // Con una lista o un diálogo abierto, Esc lo cierra en vez de volver a COLISIÓN.
+        if (ev.key === "Escape" && activa && activa.capturaEscape && activa.capturaEscape()) { activa.tecla(ev); return; }
         if (ev.key === "Escape") { ev.preventDefault(); abrir("colision"); return; }
         const porF = TECLAS_F[ev.key];
         const capturaTexto = activa && activa.capturaTeclado;
@@ -206,7 +211,13 @@
       movimiento(punto) {
         if (activa && activa.movimiento) activa.movimiento(relativo(punto));
       },
+      // Gestos (rueda, arrastre, pellizco): solo para las vistas que implementan gesto(g).
+      get conGestos() { return !!(activa && activa.gesto); },
+      gesto(g) {
+        if (activa && activa.gesto) activa.gesto({ ...g, punto: relativo(g.punto) });
+      },
       detener() {
+        DENDRO.teclado.usarTab(null);
         clearInterval(reloj);
         if (activa && activa.detener) activa.detener();
       },

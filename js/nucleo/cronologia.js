@@ -498,10 +498,16 @@
         const nodo = cat.porCodigo[c];
         if (!nodo || nodo.baja) return null;
         const par = b.deRama[c] ? porId[b.deRama[c].id] : null;
-        const eventos = nodo.raiz
-          ? registro.filter((ev) => ev.origen === "fijo" && /MYTH|N̂/.test(ev.texto)).reverse()
-          : registro.filter((ev) => ev.origen !== "ruido" && ev.tierras.includes(c)).reverse();
-        memo.set(c, { ...tierraEn(nodo, par, t, colapso, cohesion), eventos });
+        // Los eventos se buscan solo si alguien los pide (el ÁRBOL consulta cientos de ramas por minuto).
+        const tierra = tierraEn(nodo, par, t, colapso, cohesion);
+        let eventos = null;
+        Object.defineProperty(tierra, "eventos", {
+          enumerable: true,
+          get: () => eventos || (eventos = nodo.raiz
+            ? registro.filter((ev) => ev.origen === "fijo" && /MYTH|N̂/.test(ev.texto)).reverse()
+            : registro.filter((ev) => ev.origen !== "ruido" && ev.tierras.includes(c)).reverse()),
+        });
+        memo.set(c, tierra);
       }
       return memo.get(c);
     };
@@ -532,6 +538,7 @@
       mensajes: mensajes(t),
       archivo: archivo(t),
       hitos: hitosDe(t),
+      protocolos: (datos().protocolos || []).filter((x) => !x.desde || aMs(x.desde) <= t),
       silueta: siluetaDe(t),
       modulosCaidos,
     };

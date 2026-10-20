@@ -104,6 +104,7 @@ window.DENDRO_CONFIG = {
     grosorLinea: 1.25,        // px CSS de un trazo normal
     grosorActivo: 2.2,        // trazo de lo seleccionado o activo
     transicionMs: 260,        // barrido de línea al cambiar de vista
+    rampaPasos: 8,            // tonos de la rampa rama → arma (convergencias en el ÁRBOL)
     globo: {
       puntos: 1400,           // trama de tierra en un globo grande (se reduce con el radio)
       resolucion: [96, 48],   // malla lon × lat donde se evalúa el ruido de continentes
@@ -113,10 +114,16 @@ window.DENDRO_CONFIG = {
       gradosPorSegundo: 6,    // rotación
       inclinacion: 18,        // grados del eje hacia el observador
     },
+    arbol: {
+      zoomMax: 40,            // aumento máximo del ÁRBOL
+      misilesMax: 80,         // trazos de misil animados a la vez
+    },
     osciloscopio: {
       divisiones: [10, 8],
       ciclosEnPantalla: 18,
       latidosEnDeltaInicial: 4, // latidos visibles cuando Δω = Δω₀
+      gananciaMin: 0.35,      // amplitud de la suma lejos del contacto (sube a 1)
+      saturacion: 0.8,        // recorte de la señal en el contacto
     },
   },
 
@@ -140,6 +147,10 @@ window.DENDRO_CONFIG = {
     },
     encendido: { duracionMs: 1400 },
     apagado:   { duracionMs: 700, resplandorMs: 2500 },
+  },
+
+  contencion: {
+    mejoraMs: 30000,          // cuánto dura la mejora visual de un protocolo
   },
 
   texto: {

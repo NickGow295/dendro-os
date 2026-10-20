@@ -117,20 +117,22 @@
 - [x] **T7.6** `data/revelaciones.js` y `Estado.hitos`; eventos fijos nuevos y corruptos fijos (`04-lore.md §7–8`); órdenes ocultas `omega i`, `sarmiento`, `escarda`, `myth`, `injertador` y `n-hat` con la N̂ de MYTH. *(RF-17)*
 - [x] **T7.7** EXPEDIENTE: fichas cortas de ramas generadas y ficha de MYTH con cohesión y guardianes sellados. *(RF-05, RF-16)*
 
-> Notas: `Estado.mensajesDisponibles` pasa a `Estado.mensajes`. En COMUNICACIONES y ARCHIVO, ←/→ cambia de canal o carpeta (Tab está reservado). Las órdenes ocultas que esperan su hito responden `ORDEN DESCONOCIDA`. El aviso de contenciones suspendidas de CONTENCIÓN remite a D-12 y solo se ve con credencial; el resto de CONTENCIÓN llega con T8.8. PROC-FIR-02 pasa de la rev. 3 a la 4 en vivo (10-30 09:00).
+> Notas: `Estado.mensajesDisponibles` pasa a `Estado.mensajes`. En COMUNICACIONES y ARCHIVO, ←/→ cambia de canal o carpeta (desde la Fase 8, también Tab). Las órdenes ocultas que esperan su hito responden `ORDEN DESCONOCIDA`. El aviso de contenciones suspendidas de CONTENCIÓN remite a D-12 y solo se ve con credencial; el resto de CONTENCIÓN llega con T8.8. PROC-FIR-02 pasa de la rev. 3 a la 4 en vivo (10-30 09:00).
 
 **Verificación:** recorrer el calendario de revelaciones con `?fecha=` en cada hito, con y sin credencial; la clave del lore abre el canal y los clasificados, y siguen abiertos al recargar.
 
 ## Fase 8 — Vistas rediseñadas
 
-- [ ] **T8.1** `vectores.js`: `trazos` y `puntos` por lotes; rampa `rampa0…7` en `tema.js`. *(RNF-02)*
-- [ ] **T8.2** Gestos en `main.js` (rueda, arrastre, pellizco) y `gesto(g)` en el contrato de vista. *(RNF-04)*
-- [ ] **T8.3** `ui/lista.js`: lista filtrable con chips, filtro por texto y táctil. *(RF-05)*
-- [ ] **T8.4** V2 ÁRBOL: catálogo completo por lotes, rampa de convergencia, misiles animados, zoom y desplazamiento, MYTH siempre visible y minimapa, sustrato con la Estación Raíz, selección por rejilla espacial. ≥ 60 fps. *(RF-05, RF-15, RNF-02)*
-- [ ] **T8.5** V1 COLISIÓN: selector de parejas activas con lista y filtro; gráfica de historia de pareja (componente común). *(RF-05, RF-19)*
-- [ ] **T8.6** V4 OSCILOSCOPIO: convergencia de frecuencias, ganancia, saturación, picos rojos, desvanecimiento. *(RF-19)*
-- [ ] **T8.7** V3 MONITOR: página de activas generadas, curva de N̂ y gráfica de historia de pareja. *(RF-05, RF-19)*
-- [ ] **T8.8** `data/protocolos.js` y V9 CONTENCIÓN rediseñada; `ui.efectosContencion` aplicado en COLISIÓN, ÁRBOL, OSCILOSCOPIO y EXPEDIENTE; orden `contener` (alias `aislar`). *(RF-20)*
+- [x] **T8.1** `vectores.js`: `trazos` y `puntos` por lotes; rampa `rampa0…7` en `tema.js`. *(RNF-02)*
+- [x] **T8.2** Gestos en `main.js` (rueda, arrastre, pellizco) y `gesto(g)` en el contrato de vista. *(RNF-04)*
+- [x] **T8.3** `ui/lista.js`: lista filtrable con chips, filtro por texto y táctil. *(RF-05)*
+- [x] **T8.4** V2 ÁRBOL: catálogo completo por lotes, rampa de convergencia, misiles animados, zoom y desplazamiento, MYTH siempre visible y minimapa, sustrato con la Estación Raíz, selección por rejilla espacial. ≥ 60 fps. *(RF-05, RF-15, RNF-02)*
+- [x] **T8.5** V1 COLISIÓN: selector de parejas activas con lista y filtro; gráfica de historia de pareja (componente común). *(RF-05, RF-19)*
+- [x] **T8.6** V4 OSCILOSCOPIO: convergencia de frecuencias, ganancia, saturación, picos rojos, desvanecimiento. *(RF-19)*
+- [x] **T8.7** V3 MONITOR: página de activas generadas, curva de N̂ y gráfica de historia de pareja. *(RF-05, RF-19)*
+- [x] **T8.8** `data/protocolos.js` y V9 CONTENCIÓN rediseñada; `ui.efectosContencion` aplicado en COLISIÓN, ÁRBOL, OSCILOSCOPIO y EXPEDIENTE; orden `contener` (alias `aislar`). *(RF-20)*
+
+> Notas: la lista de parejas se abre con L o tocando el centro del selector (Enter quedó libre: tras el acceso abría la lista sin querer). Las vistas pueden declarar `usaTab` y `capturaEscape`. La disposición del ÁRBOL abre los hijos alrededor de la dirección de su padre (niveles 2–4), no en ángulos absolutos: así parece un árbol y no una escoba. `aislar <objetivo>` es ahora alias de `contener PC-40 <objetivo>`. Medido en Edge sin cabeza: ÁRBOL completo con `?fecha=2026-12-12&fps=1` a 75 fps (el tope del modo) con 2.6 ms de CPU por fotograma.
 
 **Verificación:** con `?fecha=2026-11-20`, C-03 en hostilidades con misiles en el ÁRBOL y picos rojos en el OSCILOSCOPIO; con `?fecha=2026-12-12` y `?fps=1`, el ÁRBOL a ≥ 60 fps con zoom; aplicar PC-14 mejora la pareja ~30 s y el `Estado` es idéntico antes y después.
 

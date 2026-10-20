@@ -1,5 +1,6 @@
-// Piezas compartidas por las vistas: nombres y colores de estado, barra de estabilidad
-// y opciones de globo según el estado del día. Solo leen del Estado; no tocan el canvas.
+// Piezas compartidas por las vistas: nombres y colores de estado, barra de estabilidad, opciones de
+// globo según el estado del día, selector de parejas con lista filtrable, gráfica de historia de
+// pareja (RF-19) y mejoras transitorias de contención. Solo leen del Estado; no tocan el canvas.
 (function (DENDRO) {
   "use strict";
 
@@ -108,8 +109,162 @@
     return 0;
   }
 
+  // ── Mejoras de contención (02-diseno.md §6, V9) ───────────────────────────
+  // ui.efectosContencion: [{ objetivo, protocolo, hasta }]. Solo cambian el dibujo, nunca el Estado.
+  function efecto(ui, objetivos, protocolos) {
+    const ahora = performance.now();
+    ui.efectosContencion = (ui.efectosContencion || []).filter((e) => e.hasta > ahora);
+    return ui.efectosContencion.find((e) => objetivos.includes(e.objetivo) && (!protocolos || protocolos.includes(e.protocolo))) || null;
+  }
+
+  // Lectura de una pareja con la mejora transitoria aplicada (si la hay).
+  function lecturaPareja(ui, par) {
+    const e = efecto(ui, [par.id, par.a, par.b]);
+    const l = { efecto: e, deltaOmega: par.deltaOmega, separacion: par.separacion, anillo: false, interceptados: false };
+    if (!e) return l;
+    if (e.protocolo === "PC-14") { l.anillo = true; l.deltaOmega = par.deltaOmega * 1.08; }
+    if (e.protocolo === "PC-21") l.separacion = Math.min(1, par.separacion + 0.12);
+    if (e.protocolo === "PC-30") l.interceptados = true;
+    return l;
+  }
+
+  // Estabilidad mostrada de una rama (PC-11: +15).
+  function estabilidadMostrada(ui, t) {
+    return efecto(ui, [t.codigo], ["PC-11"]) ? Math.min(100, t.estabilidad + 15) : t.estabilidad;
+  }
+
+  // ── Protocolos: objetivos válidos (data/protocolos.js) ────────────────────
+  // Un objetivo es { id, tipo: "universo" | "pareja" | "myth" }; id es el código, el id de pareja o "MYTH".
+  function admite(proto, id, estado) {
+    if (proto.objetivo === "myth") return id === "MYTH";
+    if (proto.objetivo === "pareja") {
+      const par = pareja(estado, id);
+      return !!par && (!proto.estados || proto.estados.includes(par.estado)) && (!proto.soloHostil || /hostil/.test(par.postura));
+    }
+    const t = estado.tierras.porCodigo(id);
+    return !!t && !t.raiz && (!proto.estados || proto.estados.includes(t.estado)) && !(proto.excluir || []).includes(t.estado) &&
+      (!proto.conPlanos || !!(t.planos && t.planos.length));
+  }
+
+  function objetivosDe(proto, estado) {
+    if (proto.objetivo === "myth") return ["MYTH"];
+    if (proto.objetivo === "pareja") return estado.parejas.filter((par) => admite(proto, par.id, estado)).map((par) => par.id);
+    return DENDRO.multiverso.catalogo().nodos.filter((n) => !n.raiz && !n.baja && admite(proto, n.codigo, estado)).map((n) => n.codigo);
+  }
+
+  // ── Selector de parejas con lista filtrable (02-diseno.md §6, V1) ─────────
+  const ACTIVOS = ["APROXIMACIÓN", "CONTACTO", "HOSTILIDADES", "INTERFERENCIA"];
+  const RESUELTOS = ["ANIQUILADA", "FUSIONADA", "SUPERVIVIENTE", "COLAPSO"];
+  const CHIPS_PAREJAS = [
+    { id: "activas", etiqueta: "ACTIVAS", filtro: (p) => ACTIVOS.includes(p.estado) },
+    { id: "aprox", etiqueta: "APROX", filtro: (p) => p.estado === "APROXIMACIÓN" },
+    { id: "contacto", etiqueta: "CONTACTO", filtro: (p) => p.estado === "CONTACTO" },
+    { id: "hostil", etiqueta: "HOSTIL", filtro: (p) => p.estado === "HOSTILIDADES" || p.hostil },
+    { id: "interf", etiqueta: "INTERF", filtro: (p) => p.estado === "INTERFERENCIA" },
+    { id: "resueltas", etiqueta: "RESUELTAS", filtro: (p) => RESUELTOS.includes(p.estado) },
+    { id: "nombradas", etiqueta: "NOMBRADAS", filtro: (p) => p.nombrada },
+    { id: "todas", etiqueta: "TODAS", filtro: null },
+  ];
+
+  function nombresPareja(estado, par) {
+    if (par.nombrada) return `${nombre(tierra(estado, par.a))} / ${nombre(tierra(estado, par.b))}`;
+    return `${codigoCorto(par.a)} / ${codigoCorto(par.b)}`;
+  }
+
+  // Lista de parejas para ctx (usa ctx.estado y ctx.ui.parejaSeleccionada); alElegir(par) opcional.
+  function listaParejas(ctx, alElegir) {
+    return DENDRO.lista.crear({
+      titulo: () => `ACTIVAS: ${ctx.estado.activas.length}`,
+      elementos: () => ctx.estado.parejas,
+      chips: CHIPS_PAREJAS,
+      buscar: (p) => `${p.id} ${p.a} ${p.b} ${nombresPareja(ctx.estado, p)}`,
+      fila: (p, ancho) => [
+        { t: p.id.padEnd(7), c: "ambar" },
+        { t: nombresPareja(ctx.estado, p).padEnd(Math.max(12, ancho - 36)).slice(0, Math.max(12, ancho - 36)) + " ", c: "texto" },
+        { t: p.estado.padEnd(14), c: COLOR_ESTADO[p.estado] },
+        { t: p.estado === "ESTABLE" || RESUELTOS.includes(p.estado) ? "" : DENDRO.tau.cuenta(p.paraContacto), c: "textoTenue" },
+      ],
+      actual: () => pareja(ctx.estado, ctx.ui.parejaSeleccionada),
+      alElegir: (p) => { ctx.ui.parejaSeleccionada = p.id; if (alElegir) alElegir(p); ctx.redibujar(); },
+      redibujar: () => ctx.redibujar(),
+    });
+  }
+
+  // ── Gráfica de la historia de una pareja (RF-19) ──────────────────────────
+  // Las dos firmas ω convergen; contacto en ámbar; hostilidades rayadas en rojo; la rama destruida se
+  // corta y cae al eje con ✕ roja; en la fusión, una sola curva más gruesa. Ahora y futuro discontinuo.
+  // a = { x, y, ancho, alto } en celdas dentro de v.
+  function graficaHistoria(v, a, par, estado, o) {
+    o = o || {};
+    const serie = DENDRO.cronologia.serieFirmas(par, o.muestras || 96), puntos = serie.puntos, m = serie.marcas;
+    const valores = puntos.flatMap((q) => [q.wa, q.wb]).filter((w) => w !== null);
+    if (!valores.length) return;
+    let min = Math.min(...valores), max = Math.max(...valores);
+    const margen = (max - min) * 0.15 || 0.001;
+    min -= margen; max += margen;
+    const t0 = puntos[0].tau, t1 = puntos[puntos.length - 1].tau;
+    const px = (tau) => a.x + ((tau - t0) / (t1 - t0)) * a.ancho;
+    const py = (w) => a.y + a.alto * (1 - (w - min) / (max - min));
+    const base = a.y + a.alto;
+    const grosor = window.DENDRO_CONFIG.vectores.grosorActivo;
+
+    v.linea(a.x, a.y, a.x, base, "ambarTenue", { alfa: 0.7 });
+    v.linea(a.x, base, a.x + a.ancho, base, "ambarTenue", { alfa: 0.7 });
+    if (/hostil/.test(par.postura)) {
+      const x1 = px(m.tramo), x2 = px(m.desenlace);
+      for (let x = x1; x < x2; x += 0.8) v.linea(x, base, Math.min(x2, x + 0.8), a.y, "arma", { alfa: 0.22 });
+      v.texto((x1 + x2) / 2, a.y + 0.1, "HOSTILIDADES", "arma", { tam: 0.75, alinear: "center", alfa: 0.8 });
+    }
+    v.linea(px(m.contacto), a.y, px(m.contacto), base, "ambar", { discontinua: [2, 2], alfa: 0.9 });
+    v.texto(px(m.contacto) + 0.3, base - 0.9, "CONTACTO", "ambar", { tam: 0.75 });
+
+    // Una curva por rama, partida en tramos (pasado / futuro, y cortada donde vale null).
+    function curva(clave, color, alfa, ancho) {
+      let tramo = [], futuro = null, ultimo = null;
+      const cerrar = () => {
+        if (tramo.length > 1) v.polilinea(tramo, color, futuro ? { alfa: alfa * 0.6, discontinua: [3, 3] } : { alfa, grosor: ancho });
+        tramo = [];
+      };
+      for (const q of puntos) {
+        const w = q[clave];
+        if (w === null) { cerrar(); continue; }
+        if (futuro !== null && futuro !== q.futuro) { const enlace = tramo[tramo.length - 1]; cerrar(); if (enlace) tramo.push(enlace); }
+        futuro = q.futuro;
+        const punto = [px(q.tau), py(w)];
+        tramo.push(punto);
+        ultimo = punto;
+      }
+      cerrar();
+      return ultimo;
+    }
+    const fusion = m.fusion && puntos.some((q) => q.tau >= m.desenlace && !q.futuro);
+    const finA = curva("wa", "tierra", 1, fusion ? grosor : undefined);
+    const finB = fusion ? null : curva("wb", "tierra", 0.55);
+    // La rama destruida cae al eje con una marca roja, si su corte ya ocurrió.
+    if (estado.tau >= m.desenlace) {
+      for (const c of m.destruidas) {
+        const fin = c === par.a ? finA : finB;
+        if (!fin) continue;
+        v.linea(fin[0], fin[1], fin[0], base, "arma", { alfa: 0.8 });
+        const r = 0.35;
+        v.linea(fin[0] - r / v.aspecto, base - r, fin[0] + r / v.aspecto, base + r, "arma", { grosor });
+        v.linea(fin[0] - r / v.aspecto, base + r, fin[0] + r / v.aspecto, base - r, "arma", { grosor });
+      }
+    }
+    if (estado.tau >= t0 && estado.tau <= t1) {
+      v.linea(px(estado.tau), a.y, px(estado.tau), base, "texto", { alfa: 0.5, discontinua: [1, 2] });
+      v.texto(px(estado.tau), a.y - 0.05, "AHORA", "texto", { tam: 0.7, alinear: "center", base: "bottom", alfa: 0.8 });
+    }
+    if (o.rotulos !== false) {
+      v.texto(a.x, base + 0.15, DENDRO.tau.corto(puntos[0].instante), "textoTenue", { tam: 0.75 });
+      v.texto(a.x + a.ancho, base + 0.15, DENDRO.tau.corto(puntos[puntos.length - 1].instante), "textoTenue", { tam: 0.75, alinear: "right" });
+      v.texto(a.x - 0.3, a.y, "ω", "textoTenue", { tam: 0.8, alinear: "right" });
+    }
+  }
+
   DENDRO.vistasComun = {
-    MAYUS, COLOR_ESTADO, ABREVIATURA, POSTURAS, COLOR_TIPO,
+    MAYUS, COLOR_ESTADO, ABREVIATURA, POSTURAS, COLOR_TIPO, ACTIVOS, RESUELTOS,
     tierra, pareja, nombre, codigoCorto, parejasNavegables, parejaNombrada, opcionesGlobo, colorEstabilidad, barraEstabilidad, selector, ladoDelToque, partir, desplazamiento,
+    efecto, lecturaPareja, estabilidadMostrada, listaParejas, nombresPareja, graficaHistoria, admite, objetivosDe,
   };
 })(window.DENDRO = window.DENDRO || {});

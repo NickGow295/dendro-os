@@ -53,7 +53,7 @@
         pestanas.push({ desde: x, hasta: fin, i });
         x = fin + 2;
       });
-      reg.derecha(0, "←→ CANAL · ↑↓ MENSAJE ", "textoTenue");
+      reg.derecha(0, "TAB CANAL · ↑↓ MENSAJE ", "textoTenue");
     }
 
     function dibujarSellado(caja, cifrados) {
@@ -153,6 +153,7 @@
 
     return {
       animada: true,
+      usaTab: true,
       dibujar,
       vectores,
       actualizar(nuevo) {
@@ -168,6 +169,7 @@
         } else if (ev.key === "ArrowUp") { ev.preventDefault(); elegir(-1); }
         else if (ev.key === "ArrowDown") { ev.preventDefault(); elegir(1); }
         else if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { ev.preventDefault(); cambiarCanal(canal + (ev.key === "ArrowRight" ? 1 : -1)); }
+        else if (ev.key === "Tab") { ev.preventDefault(); cambiarCanal(canal + (ev.shiftKey ? -1 : 1)); }
         else if (ev.key === "PageDown" || ev.key === "PageUp") {
           ev.preventDefault();
           desplazado += (ev.key === "PageDown" ? 1 : -1) * Math.max(1, (lector ? lector.alto : 10) - 6);

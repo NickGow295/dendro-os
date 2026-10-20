@@ -19,6 +19,7 @@ const archivos = [
   "data/mensajes.js",
   "data/archivo.js",
   "data/revelaciones.js",
+  "data/protocolos.js",
   "js/nucleo/prng.js",
   "js/nucleo/reloj.js",
   "js/nucleo/tau.js",

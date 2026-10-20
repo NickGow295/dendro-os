@@ -1,17 +1,20 @@
 // V1 COLISIÓN (02-diseno.md §6): la pareja seleccionada como dos globos que se acercan,
-// con la regla de Δω, los ataques en rojo, el desenlace y los paneles de lectura.
-// Lee solo del Estado y del estado de interfaz; los tiempos se muestran en τ.
+// con la regla de Δω, los ataques en rojo, el desenlace, los paneles de lectura y la gráfica de
+// historia de la pareja. ←/→ recorre las activas; L o Enter abre la lista filtrable de todas.
+// Lee solo del Estado y del estado de interfaz; los tiempos se muestran en τ. Las mejoras de
+// contención cambian solo el dibujo.
 (function (DENDRO) {
   "use strict";
 
-  const cfg = () => window.DENDRO_CONFIG;
   const C = DENDRO.vistasComun;
   const { MAYUS, POSTURAS, COLOR_ESTADO } = C;
   const MISILES_POR_ARMA = 3;
   const VELOCIDAD_MISIL = 0.35;  // trayectorias completas por segundo
 
   function crear(ctx) {
-    const { estado, ui } = ctx;
+    const { ui } = ctx;
+    let estado = ctx.estado;
+    const lista = C.listaParejas(ctx);
     const tierra = (codigo) => C.tierra(estado, codigo);
     const pareja = () => C.pareja(estado, ui.parejaSeleccionada) || C.pareja(estado, estado.parejaPrincipal);
     let escena = null;   // región donde van los globos (se recalcula en cada dibujo)
@@ -36,16 +39,17 @@
       const ancho3 = String(lista.length).length;
       reg.escribir(1, 0, `${estado.activas.length ? "ACTIVA" : "PAREJA"} ${indice ? String(indice).padStart(ancho3, "0") : "—"}/${lista.length}`, "textoTenue");
       if (par.id === estado.parejaPrincipal) reg.derecha(0, " PRINCIPAL ", "ambar", { inverso: true });
-      else reg.derecha(0, ancho ? "INICIO: PRINCIPAL " : "", "textoTenue");
+      else reg.derecha(0, ancho ? "L: LISTA · INICIO: PRINCIPAL " : "", "textoTenue");
       if (!ancho) reg.centrar(1, nombrePareja(par), "texto");
       else reg.rellenar(0, 1, reg.ancho, 1, "─", "ambarTenue");
     }
 
     function dibujarLectura(caja, par) {
+      const l = C.lecturaPareja(ui, par);
       const filas = [
-        ["Δω ACTUAL", par.deltaOmega.toFixed(4), "texto"],
+        ["Δω ACTUAL", l.deltaOmega.toFixed(4), l.efecto ? "exito" : "texto"],
         ["Δω₀", par.deltaOmega0.toFixed(4), "textoTenue"],
-        ["SEPARACIÓN", `${Math.round(par.separacion * 100)} %`, "texto"],
+        ["SEPARACIÓN", `${Math.round(l.separacion * 100)} %`, l.efecto ? "exito" : "texto"],
         ["CONTACTO", textoContacto(par), par.paraContacto > 0 && par.estado !== "ESTABLE" ? "ambar" : "texto"],
         ["ESTADO", par.estado, COLOR_ESTADO[par.estado]],
       ];
@@ -77,6 +81,11 @@
       const ancho = reg.ancho >= 80;
       dibujarSelector(reg, par, ancho);
       grafica = null;
+      if (lista.abierta) {
+        escena = null;
+        lista.dibujar(reg.region(0, 2, reg.ancho, reg.alto - 2));
+        return;
+      }
       if (ancho) {
         const altoPanel = 9;
         escena = reg.region(0, 2, reg.ancho, reg.alto - 2 - altoPanel);
@@ -84,16 +93,7 @@
         const a1 = Math.floor(reg.ancho * 0.28), a2 = Math.floor(reg.ancho * 0.36);
         dibujarLectura(reg.caja(0, y, a1, altoPanel, { titulo: "LECTURA" }), par);
         dibujarPostura(reg.caja(a1, y, a2, altoPanel, { titulo: "POSTURA", doble: false }), par);
-        const g = reg.caja(a1 + a2, y, reg.ancho - a1 - a2, altoPanel, { titulo: "Δω · VENTANA DE CONTACTO", doble: false });
-        if (par.estado === "ESTABLE") g.centrar(Math.floor(g.alto / 2), "SIN DATOS DE CONVERGENCIA", "textoTenue");
-        else {
-          grafica = g;
-          g.escribir(0, 0, "Δω₀", "textoTenue");
-          g.escribir(0, g.alto - 2, "0", "textoTenue");
-          const serie = DENDRO.cronologia.serieDeltaOmega(par);
-          g.escribir(4, g.alto - 1, DENDRO.tau.corto(serie[0].instante), "textoTenue");
-          g.derecha(g.alto - 1, DENDRO.tau.corto(serie[serie.length - 1].instante), "textoTenue");
-        }
+        grafica = reg.caja(a1 + a2, y, reg.ancho - a1 - a2, altoPanel, { titulo: "HISTORIA DE LA PAREJA · ω", doble: false });
       } else {
         const altoPanel = 8;
         escena = reg.region(0, 2, reg.ancho, reg.alto - 2 - altoPanel);
@@ -157,7 +157,19 @@
       v.punto(x, y, color, { tam: 2.5 + 2 * pulso });
     }
 
-    function ataques(v, par, posiciones, r, segundos, vertical) {
+    // PC-14: un anillo de aislante entre los dos globos.
+    function anillo(v, x, y, r, segundos, vertical) {
+      const pulso = 0.5 + 0.5 * Math.sin(segundos * 3);
+      const puntos = [];
+      for (let i = 0; i <= 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        const ex = vertical ? r * 1.1 : r * 0.25, ey = vertical ? r * 0.25 : r * 1.1;
+        puntos.push([x + (Math.cos(a) * ex) / v.aspecto, y + Math.sin(a) * ey]);
+      }
+      v.polilinea(puntos, "exito", { alfa: 0.4 + 0.5 * pulso, discontinua: [3, 3] });
+    }
+
+    function ataques(v, par, posiciones, r, segundos, vertical, interceptados) {
       const lista = estado.ataques.filter((a) => a.pareja === par.id);
       lista.forEach((atq, indice) => {
         const desde = posiciones[atq.desde], hacia = posiciones[atq.hacia];
@@ -175,9 +187,15 @@
           x2 = hacia.x; y2 = hacia.y - r * 0.6;
           cx = (x1 + x2) / 2; cy = Math.min(y1, y2) - altura;
         }
-        v.curva(x1, y1, cx, cy, x2, y2, "arma", { discontinua: [2, 5], alfa: 0.45 });
+        v.curva(x1, y1, cx, cy, x2, y2, "arma", { discontinua: interceptados ? [1, 6] : [2, 5], alfa: interceptados ? 0.25 : 0.45 });
         for (let k = 0; k < MISILES_POR_ARMA; k++) {
           const t = (segundos * VELOCIDAD_MISIL + k / MISILES_POR_ARMA + indice * 0.17) % 1;
+          if (interceptados && t > 0.5) {
+            // PC-30: el misil revienta a mitad de camino.
+            const q = DENDRO.vectores.puntoEnCurva(x1, y1, cx, cy, x2, y2, 0.5);
+            if (t < 0.6) v.circulo(q.x, q.y, 0.2 + (t - 0.5) * 8, "exito", { alfa: (0.6 - t) * 10 });
+            continue;
+          }
           for (let s = 0; s < 3; s++) {
             const q = DENDRO.vectores.puntoEnCurva(x1, y1, cx, cy, x2, y2, Math.max(0, t - s * 0.015));
             v.punto(q.x, q.y, "arma", { tam: 2.4 - s * 0.6, alfa: 1 - s * 0.3 });
@@ -185,23 +203,6 @@
           if (t > 0.9) v.circulo(x2, y2, 0.3 + (t - 0.9) * 12, "arma", { alfa: (1 - t) * 10 });
         }
       });
-    }
-
-    function grafiqueta(v, par) {
-      const serie = DENDRO.cronologia.serieDeltaOmega(par), w = v.ancho - 4, h = v.alto - 2;
-      const px = (i) => 4 + (i / (serie.length - 1)) * w;
-      const py = (valor) => 0.5 + (1 - valor / par.deltaOmega0) * (h - 0.5);
-      v.linea(4, py(0), 4 + w, py(0), "ambarTenue", { alfa: 0.6 });
-      v.linea(4, 0.5, 4, py(0), "ambarTenue", { alfa: 0.6 });
-      const pasado = serie.map((s, i) => [px(i), py(s.valor), s.futuro]);
-      const corte = pasado.findIndex((p) => p[2]);
-      const ultimo = corte < 0 ? pasado.length - 1 : corte - 1;
-      if (ultimo >= 1) v.polilinea(pasado.slice(0, ultimo + 1), "tierra", { grosor: cfg().vectores.grosorActivo });
-      if (corte >= 0) v.polilinea(pasado.slice(Math.max(0, corte - 1)), "ambarTenue", { discontinua: [3, 4] });
-      if (ultimo >= 0) {
-        v.linea(pasado[ultimo][0], 0.3, pasado[ultimo][0], py(0), "ambar", { alfa: 0.7, discontinua: [2, 3] });
-        v.punto(pasado[ultimo][0], pasado[ultimo][1], "ambar", { tam: 3 });
-      }
     }
 
     function vectores(raiz, ahora) {
@@ -213,8 +214,10 @@
       const vertical = escena.ancho < 80;
       const W = escena.ancho, H = escena.alto;
 
+      const lectura = C.lecturaPareja(ui, par);
       const [rotulo, colorRotulo] = rotuloEstado(par);
       v.texto(W / 2, 0.2, rotulo, colorRotulo, { tam: Math.min(3.2, H * 0.11), alinear: "center" });
+      if (lectura.efecto) v.texto(1, 0.3, `PROTOCOLO ${lectura.efecto.protocolo} EN CURSO`, "exito", { tam: 0.9, alfa: 0.6 + 0.4 * Math.sin(segundos * 4) ** 2 });
 
       const posiciones = {};
       let r;
@@ -224,7 +227,7 @@
         const cy = H * 0.5;
         const juntos = (2 * r) / v.aspecto;
         const lejos = Math.min(W * 0.62, W - (2 * r) / v.aspecto - 6);
-        const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * par.separacion;
+        const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * lectura.separacion;
         posiciones[ta.codigo] = { x: W / 2 - d / 2, y: cy };
         posiciones[tb.codigo] = { x: W / 2 + d / 2, y: cy };
       } else {
@@ -232,7 +235,7 @@
         const cx = W * 0.36;
         const juntos = 2 * r;
         const lejos = H * 0.6;
-        const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * par.separacion;
+        const d = par.estado === "FUSIONADA" ? 0 : juntos + (lejos - juntos) * lectura.separacion;
         posiciones[ta.codigo] = { x: cx, y: H * 0.52 - d / 2 };
         posiciones[tb.codigo] = { x: cx, y: H * 0.52 + d / 2 };
       }
@@ -252,17 +255,18 @@
             const x1 = pa.x + r / v.aspecto + 1.5, x2 = pb.x - r / v.aspecto - 1.5;
             v.linea(x1, pa.y, x2, pb.y, "ambarTenue", { discontinua: [3, 4] });
             for (let i = 0; i <= 4; i++) v.linea(x1 + ((x2 - x1) * i) / 4, pa.y - 0.3, x1 + ((x2 - x1) * i) / 4, pa.y + 0.3, "ambarTenue");
-            v.texto((x1 + x2) / 2, pa.y - 1.4, `Δω ${par.deltaOmega.toFixed(4)}`, "texto", { tam: 1.1, alinear: "center" });
+            v.texto((x1 + x2) / 2, pa.y - 1.4, `Δω ${lectura.deltaOmega.toFixed(4)}`, lectura.efecto ? "exito" : "texto", { tam: 1.1, alinear: "center" });
           } else {
             const y1 = pa.y + r + 0.8, y2 = pb.y - r - 0.8;
             v.linea(pa.x, y1, pb.x, y2, "ambarTenue", { discontinua: [3, 4] });
-            v.texto(pa.x + 2, (y1 + y2) / 2 - 0.5, `Δω ${par.deltaOmega.toFixed(4)}`, "texto", { tam: 1 });
+            v.texto(pa.x + 2, (y1 + y2) / 2 - 0.5, `Δω ${lectura.deltaOmega.toFixed(4)}`, lectura.efecto ? "exito" : "texto", { tam: 1 });
           }
         }
         v.globo(pa.x, pa.y, r, ta, C.opcionesGlobo(estado, ta, segundos));
         v.globo(pb.x, pb.y, r, tb, C.opcionesGlobo(estado, tb, segundos));
         contacto(v, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2, par, segundos, vertical);
-        ataques(v, par, posiciones, r, segundos, vertical);
+        if (lectura.anillo) anillo(v, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2, r, segundos, vertical);
+        ataques(v, par, posiciones, r, segundos, vertical, lectura.interceptados);
         for (const t of [ta, tb]) {
           const p = posiciones[t.codigo];
           if (vertical) rotulosGlobo(v, t, p.x + r / v.aspecto + 2, p.y - 2.5, "left", true);
@@ -270,7 +274,10 @@
         }
       }
 
-      if (grafica && par.estado !== "ESTABLE") grafiqueta(grafica.vectores(), par);
+      if (grafica) {
+        const g = grafica.vectores();
+        C.graficaHistoria(g, { x: 2, y: 0.9, ancho: g.ancho - 3, alto: g.alto - 2.2 }, par, estado);
+      }
     }
 
     function cambiarPareja(paso) {
@@ -283,7 +290,13 @@
       animada: true,
       dibujar,
       vectores,
+      get capturaTeclado() { return lista.abierta; },
+      get usaTab() { return lista.abierta; },
+      capturaEscape: () => lista.abierta,
+      actualizar(nuevo) { estado = nuevo; lista.invalidar(); },
       tecla(ev) {
+        if (lista.tecla(ev)) return;
+        if (ev.key.toLowerCase() === "l") { ev.preventDefault(); lista.abrir(); return; }
         if (ev.key === "ArrowLeft") { ev.preventDefault(); cambiarPareja(-1); }
         else if (ev.key === "ArrowRight") { ev.preventDefault(); cambiarPareja(1); }
         else if (ev.key === "Home" || ev.key.toLowerCase() === "p") {
@@ -293,9 +306,11 @@
       },
       toque(punto) {
         if (!punto) return;
+        if (lista.abierta) { lista.toque({ x: punto.x, y: punto.y - 2 }, ctx.region().region(0, 2, ctx.region().ancho, ctx.region().alto - 2)); return; }
         if (punto.y < 2) {
           const lado = C.ladoDelToque(punto, ctx.region().ancho);
           if (lado) cambiarPareja(lado);
+          else lista.abrir();
           return;
         }
         // Coordenadas de la escena (empieza dos filas por debajo de la vista).
@@ -306,6 +321,7 @@
           ctx.abrir("expediente");
         }
       },
+      detener() { lista.cerrar(); },
     };
   }
 

@@ -120,18 +120,69 @@
     }
   }
 
+  // ── Toques y gestos (02-diseno.md §6) ─────────────────────────────────────
+  // En las pantallas sin gestos, el toque llega al pulsar. Con gestos, al soltar si no hubo arrastre:
+  // más de media celda con el botón pulsado es arrastre; dos dedos, pellizco; la rueda, rueda.
+  const UMBRAL_ARRASTRE = 0.5;
+  const punteros = new Map();
+  let toquePendiente = false;
+  const conGestos = () => !!(actual && actual.conGestos && DENDRO.monitor.estado() === "encendido");
+  const enCeldas = (p) => DENDRO.pantalla.puntoEn(p.x, p.y);
+
   function alPulsarPantalla(ev) {
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") { DENDRO.monitor.encender(); return; }
-    if (estado === "apagando" || !actual || !actual.toque) return;
+    if (estado === "apagando" || !actual) return;
+    punteros.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, arrastre: false });
+    if (conGestos()) {
+      try { $("vidrio").setPointerCapture(ev.pointerId); } catch (_) { /* puntero ya liberado */ }
+      toquePendiente = punteros.size === 1;
+      return;
+    }
+    if (!actual.toque) return;
     DENDRO.sonido.tecla();
     actual.toque(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
   }
 
   function alMoverPuntero(ev) {
-    if (ev.pointerType !== "mouse" || !actual || !actual.movimiento) return;
-    if (DENDRO.monitor.estado() !== "encendido") return;
+    if (DENDRO.monitor.estado() !== "encendido" || !actual) return;
+    const p = punteros.get(ev.pointerId);
+    if (p && conGestos()) {
+      const antes = { x: p.x, y: p.y };
+      p.x = ev.clientX; p.y = ev.clientY;
+      if (punteros.size >= 2) {
+        const [a, b] = [...punteros.values()];
+        const otro = a === p ? b : a;
+        const dAntes = Math.hypot(antes.x - otro.x, antes.y - otro.y), dAhora = Math.hypot(p.x - otro.x, p.y - otro.y);
+        toquePendiente = false;
+        if (dAntes > 0) actual.gesto({ tipo: "pellizco", punto: enCeldas({ x: (p.x + otro.x) / 2, y: (p.y + otro.y) / 2 }), factor: dAhora / dAntes });
+        return;
+      }
+      const c0 = enCeldas({ x: p.x0, y: p.y0 }), c1 = enCeldas(p), ca = enCeldas(antes);
+      if (!p.arrastre && Math.hypot(c1.x - c0.x, c1.y - c0.y) > UMBRAL_ARRASTRE) p.arrastre = true;
+      if (p.arrastre) {
+        toquePendiente = false;
+        actual.gesto({ tipo: "arrastre", punto: c1, dx: c1.x - ca.x, dy: c1.y - ca.y });
+      }
+      return;
+    }
+    if (ev.pointerType !== "mouse" || !actual.movimiento) return;
     actual.movimiento(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
+  }
+
+  function alSoltarPuntero(ev) {
+    if (!punteros.has(ev.pointerId)) return;
+    punteros.delete(ev.pointerId);
+    if (ev.type !== "pointerup" || !toquePendiente || punteros.size || !conGestos() || !actual.toque) return;
+    toquePendiente = false;
+    DENDRO.sonido.tecla();
+    actual.toque(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
+  }
+
+  function alGirarRueda(ev) {
+    if (!conGestos()) return;
+    ev.preventDefault();
+    actual.gesto({ tipo: "rueda", punto: DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY), dy: ev.deltaY, factor: Math.exp(-ev.deltaY * 0.0015) });
   }
 
   function alCambiarMonitor(estado) {
@@ -243,6 +294,9 @@
     document.addEventListener("keydown", alTeclear);
     $("vidrio").addEventListener("pointerdown", alPulsarPantalla);
     $("vidrio").addEventListener("pointermove", alMoverPuntero);
+    $("vidrio").addEventListener("pointerup", alSoltarPuntero);
+    $("vidrio").addEventListener("pointercancel", alSoltarPuntero);
+    $("vidrio").addEventListener("wheel", alGirarRueda, { passive: false });
     // El mousedown (también el de compatibilidad que sigue a un toque) llevaría el foco al body y
     // cerraría el teclado del móvil recién abierto por el campo oculto.
     $("vidrio").addEventListener("mousedown", (ev) => ev.preventDefault());

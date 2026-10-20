@@ -30,6 +30,7 @@
   <script src="../data/mensajes.js"></script>
   <script src="../data/archivo.js"></script>
   <script src="../data/revelaciones.js"></script>
+  <script src="../data/protocolos.js"></script>
   <script src="../js/nucleo/reloj.js"></script>
   <script src="../js/nucleo/ruido.js"></script>
   <script src="../js/nucleo/tau.js"></script>
@@ -339,6 +340,15 @@
         const myth = e.tierras.porCodigo("MYTH"), gen = e.tierras.porCodigo(cat.parejas[0].a);
         return myth.raiz && myth.eventos.some((x) => /N̂/.test(x.texto)) && gen.eventos.length > 0 && gen.eventos.every((x) => x.tierras.includes(gen.codigo));
       });
+
+      // Rampa de convergencia y protocolos (Fase 8)
+      comprobar("Rampa: tonos de rama a arma, con tonoRampa(0) = rama y tonoRampa(1) = arma", () => {
+        const r = DENDRO.tema.rampa(), c = DENDRO_CONFIG.colores;
+        return r.length === DENDRO_CONFIG.vectores.rampaPasos && r[0].toLowerCase() === c.rama.toLowerCase() && r[r.length - 1].toLowerCase() === c.arma.toLowerCase() &&
+          DENDRO.tema.color(DENDRO.tema.tonoRampa(1)) === r[r.length - 1] && DENDRO.tema.tonoRampa(0) === "rampa0";
+      });
+      comprobar("Protocolos: siete en el catálogo; PC-90 solo desde el 12-01", () =>
+        en("2026-11-30T23:59").protocolos.length === 6 && en("2026-12-01T00:00").protocolos.some((p) => p.codigo === "PC-90") && window.DENDRO_DATOS.protocolos.length === 7);
 
       comprobar("calcularEstado tarda menos de 20 ms de media", () => {
         const t0 = performance.now();

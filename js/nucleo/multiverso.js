@@ -15,8 +15,9 @@
   const DESVIO_MINIMO = 0.00015;
   const HEREDA_TECNOLOGIA = 0.7;                           // ramillas (nivel 4) con la tecnología del padre
 
-  const LARGO_RAMA = [0.26, 0.24, 0.2, 0.15, 0.09];        // disposición: largo por nivel (0 = tronco)
-  const ABANICO = 1.45;                                    // semiabertura del árbol en radianes
+  const LARGO_RAMA = [0.26, 0.3, 0.17, 0.11, 0.07];        // disposición: largo por nivel (0 = tronco)
+  const ABANICO = 1.4;                                     // semiabertura de las primarias en radianes
+  const APERTURA = [0, 0, 0.55, 0.75, 0.95];               // semiabertura de los hijos alrededor del padre, por nivel
   const CELDA_REJILLA = 0.025;
 
   const limitar = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -258,22 +259,26 @@
     posiciones.MYTH = { x: 0, y: largoTronco };
     segmentos.push({ x1: 0, y1: 0, x2: 0, y2: largoTronco, nivel: 0, hijo: "MYTH" });
 
-    (function abrir(c, desde, hasta) {
+    // Las primarias se reparten el abanico según sus hojas; por debajo, cada nodo abre a sus hijos
+    // alrededor de su propia dirección (como un árbol, no como una escoba), también según sus hojas.
+    (function abrir(c, angPadre) {
       const n = cat.porCodigo[c], p = posiciones[c];
       const hijos = n.hijos.filter((h) => !cat.porCodigo[h].baja);
-      let a = desde;
+      const nivel = n.nivel + 1;
+      let acumulado = 0;
       for (const h of hijos) {
-        const ancho = ((hasta - desde) * hojas[h]) / hojas[c];
+        const centro = (acumulado + hojas[h] / 2) / hojas[c];
+        acumulado += hojas[h];
         const rng = DENDRO.prng.crear(semilla, "disposicion", h);
-        const ang = a + ancho / 2 + (rng() - 0.5) * ancho * 0.3;
-        const largo = LARGO_RAMA[cat.porCodigo[h].nivel] * (0.9 + rng() * 0.2);
+        const base = nivel === 1 ? -ABANICO + 2 * ABANICO * centro : angPadre + (centro - 0.5) * 2 * APERTURA[nivel];
+        const ang = base + (rng() - 0.5) * (nivel === 1 ? 0.04 : APERTURA[nivel] * 0.25);
+        const largo = LARGO_RAMA[nivel] * (0.85 + rng() * 0.3);
         const q = { x: p.x + Math.sin(ang) * largo, y: p.y + Math.cos(ang) * largo };
         posiciones[h] = q;
-        segmentos.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y, nivel: cat.porCodigo[h].nivel, hijo: h });
-        abrir(h, a, a + ancho);
-        a += ancho;
+        segmentos.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y, nivel, hijo: h });
+        abrir(h, ang);
       }
-    })("MYTH", -ABANICO, ABANICO);
+    })("MYTH", 0);
 
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
     const celdas = new Map();

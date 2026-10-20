@@ -6,11 +6,12 @@
   // F5, F11 y F12 son del navegador (RF-04); los modificadores solos no son pulsaciones.
   const IGNORADAS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock", "Tab", "F5", "F11", "F12"]);
 
-  const e = { campo: null, peticion: null };
+  const e = { campo: null, peticion: null, usaTab: null };
 
   function ignorable(ev) {
-    // Tab navega por los botones del marco, salvo mientras se escribe (autocompletado de la terminal).
-    if (ev.key === "Tab" && e.peticion && ev.target === e.campo) return false;
+    // Tab navega por los botones del marco, salvo mientras se escribe (autocompletado de la terminal)
+    // o si la pantalla activa lo usa (chips de las listas, carpetas, tierras del ÁRBOL).
+    if (ev.key === "Tab" && ((e.peticion && ev.target === e.campo) || (e.usaTab && e.usaTab()))) return false;
     return ev.ctrlKey || ev.metaKey || ev.altKey || IGNORADAS.has(ev.key);
   }
 
@@ -55,6 +56,8 @@
 
   DENDRO.teclado = {
     iniciar, ignorable, pedirTexto, soltar, enfocar, recoger,
+    usarTab: (fn) => { e.usaTab = fn || null; },
+    escribiendo: () => !!e.peticion,
     esCampo: (objetivo) => objetivo === e.campo,
   };
 })(window.DENDRO = window.DENDRO || {});

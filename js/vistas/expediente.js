@@ -39,7 +39,9 @@
     }
 
     const origen = (t) => (t.raiz ? "PRIMERA IGNICIÓN BETA" : t.joven ? `JOVEN · SALTO N.º ${t.salto} DE MYTH` : "ANTIGUA");
-    const barra = (t) => (t.raiz ? Math.round(t.cohesion * 100) : t.estabilidad);
+    // Lecturas con la mejora transitoria de contención (PC-90: N̂ +0.05; PC-11: estabilidad +15).
+    const cohesionMostrada = (t) => Math.min(1, t.cohesion + (C.efecto(ui, ["MYTH"], ["PC-90"]) ? 0.05 : 0));
+    const barra = (t) => (t.raiz ? Math.round(cohesionMostrada(t) * 100) : C.estabilidadMostrada(ui, t));
     const rotulo = (t) => (t.raiz ? "MYTH · TRONCO" : t.nombre ? `${t.codigo} · ${MAYUS(t.nombre)}` : t.codigo);
 
     function dibujarFicha(caja, t) {
@@ -56,14 +58,15 @@
       fila("TECNOLOGÍA", MAYUS(t.tecnologia));
       fila("ORIGEN", origen(t), t.joven ? "ambar" : "texto");
       if (t.nombrada || t.raiz) {
-        const planos = t.planos.length ? MAYUS(t.planos.join(", ")) : "NINGUNO DETECTADO";
+        const sellados = t.planos.length && C.efecto(ui, [t.codigo], ["PC-23"]);
+        const planos = (t.planos.length ? MAYUS(t.planos.join(", ")) : "NINGUNO DETECTADO") + (sellados ? " · SELLADO" : "");
         C.partir(planos, ancho).forEach((l, i) => fila(i ? "" : "PLANOS ANEXOS", l, "textoTenue"));
         C.partir(MAYUS(t.caracter), ancho).forEach((l, i) => fila(i ? "" : "CARÁCTER", l, "textoTenue"));
       }
       if (t.raiz) {
         fila("RAMAS", `${DENDRO.escritorio.formatoRamas(estado.ramasCatalogadas - 1)} BROTAN DE ÉL`);
         fila("ESTADO", t.estado, COLOR_ESTADO[t.estado]);
-        fila("COHESIÓN N̂", t.cohesion.toFixed(3), C.colorEstabilidad(barra(t)));
+        fila("COHESIÓN N̂", cohesionMostrada(t).toFixed(3), C.colorEstabilidad(barra(t)));
         return filas;
       }
       if (par) {
@@ -75,7 +78,7 @@
         if (contra.length) fila("AMENAZA", MAYUS(contra.map((a) => estado.armas[a].nombre).join(", ")), "arma");
       }
       fila("ESTADO", t.estado + (t.fusionadaCon ? ` CON ${C.nombre(C.tierra(estado, t.fusionadaCon))}` : ""), COLOR_ESTADO[t.estado]);
-      fila("ESTABILIDAD", `${t.estabilidad} %`, C.colorEstabilidad(t.estabilidad));
+      fila("ESTABILIDAD", `${barra(t)} %`, C.colorEstabilidad(barra(t)));
       return filas;
     }
 
@@ -97,7 +100,7 @@
         if (i >= caja.alto - 1) return;
         caja.escribir(1, i, etiqueta, "textoTenue");
         caja.escribir(COLUMNA_VALOR, i, valor, color);
-        if (etiqueta === "FIRMA ω" && t.magia === "Inestable" && !t.raiz) campoOmega = { region: caja, x: COLUMNA_VALOR, y: i };
+        if (etiqueta === "FIRMA ω" && t.magia === "Inestable" && !t.raiz && !C.efecto(ui, [t.codigo], ["PC-11"])) campoOmega = { region: caja, x: COLUMNA_VALOR, y: i };
       });
       return t.raiz ? barraEn - 1 : Math.min(barraEn, caja.alto - 1);   // fila de la barra
     }

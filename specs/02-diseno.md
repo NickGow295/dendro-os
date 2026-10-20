@@ -311,7 +311,7 @@ Usos de la intensidad: corrupción de líneas de registro, glitches, fallos de �
 - `omega` = ω del padre + desviación sembrada que se reduce con el nivel (las primarias: dispersas en 0.3–9.5); hermanas entre 0.0003 y 0.05 de distancia.
 - `regimen` según `regimen` o `regimenJoven` en los niveles 1–3; en el nivel 4 (ramillas de Everett, misma X₇) se hereda del padre (`00-arbol-imaginario.md §3 y §7`). `tecnologia` de la tabla (en el nivel 4, la del padre con probabilidad 0.7); `globo` con `mar`, `rugosidad` e `inestable` sembrados.
 
-**Disposición** (`DENDRO.multiverso.disposicion()`, memoizada): coordenadas normalizadas para el ÁRBOL, tronco abajo en el centro. Abanico con ángulo proporcional al número de hojas de cada subárbol, largo decreciente por nivel y una pequeña desviación sembrada para que parezca orgánico. Incluye los segmentos (con nivel y nodo hijo), la posición de cada nodo y una rejilla espacial para buscar el nodo más cercano a un punto.
+**Disposición** (`DENDRO.multiverso.disposicion()`, memoizada): coordenadas normalizadas para el ÁRBOL, tronco abajo en el centro. Las primarias se reparten el abanico en proporción a sus hojas; por debajo, cada nodo abre a sus hijos alrededor de su propia dirección (semiabertura creciente por nivel), también según sus hojas; largo decreciente por nivel y una pequeña desviación sembrada para que parezca orgánico. Incluye los segmentos (con nivel y nodo hijo), la posición de cada nodo y una rejilla espacial para buscar el nodo más cercano a un punto.
 
 ### 4.5 Parejas y cadena exponencial
 
@@ -480,6 +480,8 @@ DENDRO.vistas.registrar({
       tecla(ev), toque(punto), movimiento(punto),  // punto = { x, y } en celdas (decimales), relativo a la región de la vista
       gesto(g),                   // opcional: { tipo: "rueda" | "arrastre" | "pellizco", punto, dx, dy, factor }
       capturaTeclado: false,      // true: las cifras llegan a la vista en vez de cambiar de pestaña (TERMINAL, filtros)
+      usaTab: false,              // true: Tab llega a la vista (listas, carpetas, canales, tierras del ÁRBOL)
+      capturaEscape(),            // opcional: true si Esc debe cerrar algo de la vista en vez de volver a COLISIÓN
       detener(),
     };
   },
@@ -493,7 +495,7 @@ Las vistas leen **solo** del `Estado` que reciben (al crearse o en `actualizar`)
 **Lista filtrable** (`ui/lista.js`, la usan COLISIÓN y CONTENCIÓN): ventana sobre la vista con un campo de filtro (texto libre por código, nombre o id; entra por `teclado.pedirTexto`, así que funciona en móvil), chips de estado (`APROX`, `CONTACTO`, `HOSTIL`, `INTERF`, `RESUELTAS`, `NOMBRADAS`) que se alternan con Tab o tocándolos, filas navegables con ↑/↓ y RePág/AvPág, Enter elige, Esc cierra. Mientras está abierta, la vista declara `capturaTeclado`.
 
 **V1 COLISIÓN** (principal):
-- Arriba, el selector `◄ C-03 · CENIZA ⟷ ARBÓREA ►`. ←/→ recorre las parejas **activas** (o todas si no hay activas); `L`, Enter sobre el selector o tocarlo abren la **lista filtrable** con todas las activas (`ACTIVAS: 214`) y, con el chip, las resueltas.
+- Arriba, el selector `◄ C-03 · CENIZA ⟷ ARBÓREA ►`. ←/→ recorre las parejas **activas** (o todas si no hay activas); `L` o tocar el centro del selector abren la **lista filtrable** con todas las activas (`ACTIVAS: 214`) y, con el chip, las resueltas.
 - Centro: los dos globos a izquierda y derecha, a distancia proporcional a `separacion`; entre ellos, una regla discontinua con la lectura de Δω.
 - Si la pareja es hostil, arcos rojos del atacante a la víctima, con proyectiles animados y destellos de impacto. En `mutua-hostil`, en ambos sentidos.
 - Desenlaces: fusión (los globos se superponen en uno), aniquilación (ambos se fragmentan y se apagan), superviviente (un globo dañado y restos).
@@ -545,13 +547,13 @@ Las vistas leen **solo** del `Estado` que reciben (al crearse o en `actualizar`)
 - Histograma vectorial de eventos por ciclo en la cabecera. Crece en vivo.
 
 **V7 COMUNICACIONES**:
-- Dos pestañas: `GENERAL` y `DIRECCIÓN` (←/→ cambia de canal —Tab queda para el navegador fuera de la escritura—; tocar la pestaña). Cada una con su bandeja y su contador de no leídos; los no leídos parpadean y los leídos se guardan en `localStorage`.
+- Dos pestañas: `GENERAL` y `DIRECCIÓN` (Tab o ←/→ cambia de canal; tocar la pestaña). Cada una con su bandeja y su contador de no leídos; los no leídos parpadean y los leídos se guardan en `localStorage`.
 - Mensajes con instante τ, remitente y asunto. Los anexos (informes reenviados) van dentro del cuerpo con un filete.
 - Sin credencial, `DIRECCIÓN` muestra `CANAL SELLADO · REQUIERE CREDENCIAL DE DIRECCIÓN` y `▒ N MENSAJES CIFRADOS`, salvo los mensajes marcados `visibleSinCredencial` (D-14).
 - Con COMUNICACIONES degradada (§4.3), algunos cuerpos llegan con líneas corruptas (semilla del día).
 
 **V8 ARCHIVO**:
-- Carpetas `MANUALES`, `PROCEDIMIENTOS`, `CLASIFICADOS` (←/→ o tocar la pestaña). Lista con código, título y revisión.
+- Carpetas `MANUALES`, `PROCEDIMIENTOS`, `CLASIFICADOS` (Tab, ←/→ o tocar la pestaña). Lista con código, título y revisión.
 - Lector con la cabecera de documentación interna (código, revisión, emisión y revisión en τ, clasificación, aprobaciones) y el cuerpo; desplazable.
 - Clasificados ya emitidos sin credencial: `CLAS-INJ-01 · ░░░░░░░░░░ · SELLADO`. Los que aún no se han emitido no aparecen. El NEGRO sigue dependiendo de `semilla`.
 - Fragmentos dentro de documentos visibles que solo se ven con credencial (el paso 3 de PROC-MYT-00): `[ELIMINADO POR DIRECCIÓN]` sin ella.

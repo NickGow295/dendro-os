@@ -30,7 +30,7 @@
         pestanas.push({ desde: x, hasta: fin, i });
         x = fin + 2;
       });
-      reg.derecha(0, "←→ CARPETA · ↑↓ DOCUMENTO ", "textoTenue");
+      reg.derecha(0, "TAB CARPETA · ↑↓ DOCUMENTO ", "textoTenue");
     }
 
     function filaLista(d, ancho) {
@@ -125,6 +125,7 @@
 
     return {
       animada: false,
+      usaTab: true,
       dibujar,
       vectores,
       // Llegan clasificados nuevos y revisiones; la lectura sigue en el mismo documento.
@@ -138,6 +139,7 @@
         else if (ev.key === "ArrowUp") { ev.preventDefault(); elegir(-1); }
         else if (ev.key === "ArrowDown") { ev.preventDefault(); elegir(1); }
         else if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { ev.preventDefault(); cambiarCarpeta(carpeta + (ev.key === "ArrowRight" ? 1 : -1)); }
+        else if (ev.key === "Tab") { ev.preventDefault(); cambiarCarpeta(carpeta + (ev.shiftKey ? -1 : 1)); }
         else if (ev.key === "PageDown") { ev.preventDefault(); desplazar(10); }
         else if (ev.key === "PageUp") { ev.preventDefault(); desplazar(-10); }
       },
