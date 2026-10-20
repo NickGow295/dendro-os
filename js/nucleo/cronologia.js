@@ -214,7 +214,22 @@
     return [...fijos, ...dePareja, ...colapso, ...ruido]
       .filter((ev) => ev.fecha <= fecha)
       .sort((x, y) => (x.fecha + x.hora + x.texto < y.fecha + y.hora + y.texto ? 1 : -1))
-      .map((ev) => ({ ...ev, corrupta: corrupcion() < intensidad * 0.35 }));
+      .map((ev) => ({ ...ev, dia: dias(c.inicioAlerta, ev.fecha), corrupta: corrupcion() < intensidad * 0.35 }));
+  }
+
+  // ── Ejes temporales para las vistas ───────────────────────────────────────
+  function calendario() {
+    const c = cfg().cronologia, lista = [];
+    for (let f = c.inicioAlerta, d = 0; f <= c.colapsoTotal; f = DENDRO.reloj.sumarDias(f, 1), d++) lista.push({ dia: d, fecha: f });
+    return lista;
+  }
+
+  function serieRamas(hoy) {
+    const c = cfg().cronologia, lista = [];
+    for (let f = c.primeraColision; f <= c.colapsoTotal; f = DENDRO.reloj.sumarDias(f, 1)) {
+      lista.push({ fecha: f, valor: ramasAfectadas(f, progresoDe(f).p), futuro: f > hoy });
+    }
+    return lista;
   }
 
   // ── Estado del día ────────────────────────────────────────────────────────
@@ -253,6 +268,10 @@
       fecha, fase, nombreFase: FASES[fase].nombre, nivelAlerta: FASES[fase].alerta, p, intensidad,
       ramasAfectadas: ramasAfectadas(fecha, p),
       diasParaColapso: Math.max(0, dias(fecha, c.colapsoTotal)),
+      diaHoy: dias(c.inicioAlerta, fecha),
+      diasTotales: dias(c.inicioAlerta, c.colapsoTotal),
+      calendario: calendario(),
+      serieRamas: serieRamas(fecha),
       tierras, parejas,
       parejaPrincipal: parejas.length ? parejaPrincipal(parejas) : null,
       ataques, registro,

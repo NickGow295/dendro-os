@@ -5,15 +5,8 @@
   "use strict";
 
   const cfg = () => window.DENDRO_CONFIG;
-  const MAYUS = (s) => s.toLocaleUpperCase("es");
-  const POSTURAS = {
-    "hostil": "HOSTIL", "mutua-hostil": "MUTUA-HOSTIL", "evacuacion": "EVACUACIÓN",
-    "aislamiento": "AISLAMIENTO", "negociacion": "NEGOCIACIÓN", "ignorancia": "IGNORANCIA",
-  };
-  const COLOR_ESTADO = {
-    "ESTABLE": "tierra", "APROXIMACIÓN": "ambar", "CONTACTO": "texto", "HOSTILIDADES": "arma", "INTERFERENCIA": "ambar",
-    "ANIQUILADA": "peligro", "FUSIONADA": "tierra", "SUPERVIVIENTE": "texto", "COLAPSO": "peligro",
-  };
+  const C = DENDRO.vistasComun;
+  const { MAYUS, POSTURAS, COLOR_ESTADO } = C;
   const MISILES_POR_ARMA = 3;
   const VELOCIDAD_MISIL = 0.35;  // trayectorias completas por segundo
 
@@ -23,6 +16,7 @@
     const pareja = () => estado.parejas.find((p) => p.id === ui.parejaSeleccionada) || estado.parejas[0];
     let escena = null;   // región donde van los globos (se recalcula en cada dibujo)
     let grafica = null;  // interior de la caja de la minigráfica, o null
+    let globos = [];     // posiciones del último fotograma, para tocar un globo y abrir su expediente
 
     // ── Texto: selector y paneles ───────────────────────────────────────────
     function nombrePareja(par) {
@@ -112,17 +106,6 @@
     }
 
     // ── Vectores: escena ────────────────────────────────────────────────────
-    function opcionesGlobo(t, par, segundos) {
-      const opciones = {};
-      const danos = estado.ataques.filter((a) => a.pareja === par.id && a.hacia === t.id).reduce((m, a) => Math.max(m, a.progreso), 0);
-      if (danos) opciones.danos = danos;
-      if (t.estado === "APROXIMACIÓN") opciones.halo = Math.max(0.3, 1 - par.separacion);
-      if (["CONTACTO", "HOSTILIDADES", "INTERFERENCIA"].includes(t.estado)) opciones.halo = 1;
-      if (t.estado === "ANIQUILADA") opciones.fragmentacion = 0.55 + 0.05 * Math.sin(segundos * 0.7);
-      if (t.estado === "SUPERVIVIENTE") opciones.danos = Math.max(opciones.danos || 0, 0.7);
-      return opciones;
-    }
-
     // En vertical (compacto) el id y la ω van en líneas separadas para no salirse por la derecha.
     function rotulosGlobo(v, t, x, y, alinear, compacto) {
       v.texto(x, y, MAYUS(t.nombre), "texto", { tam: 1.4, alinear });
@@ -134,15 +117,8 @@
         v.texto(x, y + 1.35, `${t.id} · ω ${t.omega.toFixed(4)}`, "tierra", { tam: 1, alinear });
       }
       v.texto(x, y + 2.35, t.estado, COLOR_ESTADO[t.estado], { tam: 1, alinear });
-      // Barra de estabilidad segmentada
-      const segmentos = 10, anchoBarra = compacto ? 11 : 14, llenos = Math.round((t.estabilidad / 100) * segmentos);
-      const x0 = alinear === "center" ? x - anchoBarra / 2 : x;
-      const color = t.estabilidad > 50 ? "tierra" : t.estabilidad > 20 ? "ambar" : "arma";
-      for (let i = 0; i < segmentos; i++) {
-        const sx = x0 + (i * anchoBarra) / segmentos;
-        v.poligono([[sx, y + 3.6], [sx + anchoBarra / segmentos - 0.3, y + 3.6], [sx + anchoBarra / segmentos - 0.3, y + 4.2], [sx, y + 4.2]],
-          i < llenos ? color : "ambarTenue", { relleno: i < llenos ? color : null, rellenoAlfa: 0.6, alfa: i < llenos ? 1 : 0.5 });
-      }
+      const anchoBarra = compacto ? 11 : 14;
+      C.barraEstabilidad(v, alinear === "center" ? x - anchoBarra / 2 : x, y + 3.6, anchoBarra, t.estabilidad);
     }
 
     function rotuloEstado(par) {
@@ -243,6 +219,7 @@
 
       const posiciones = {};
       let r;
+      globos = [];
       if (!vertical) {
         r = Math.min(H * 0.27, W * v.aspecto * 0.15);
         const cy = H * 0.5;
@@ -261,6 +238,7 @@
         posiciones[tb.id] = { x: cx, y: H * 0.52 + d / 2 };
       }
 
+      for (const t of [ta, tb]) globos.push({ id: t.id, x: posiciones[t.id].x, y: posiciones[t.id].y, r, aspecto: v.aspecto });
       if (par.estado === "FUSIONADA") {
         const p = posiciones[ta.id];
         v.globo(p.x, p.y, r * 1.1, ta, { fusion: { tierra: tb, mezcla: 0.5 + 0.2 * Math.sin(segundos * 0.8) } });
@@ -282,8 +260,8 @@
             v.texto(pa.x + 2, (y1 + y2) / 2 - 0.5, `Δω ${par.deltaOmega.toFixed(4)}`, "texto", { tam: 1 });
           }
         }
-        v.globo(pa.x, pa.y, r, ta, opcionesGlobo(ta, par, segundos));
-        v.globo(pb.x, pb.y, r, tb, opcionesGlobo(tb, par, segundos));
+        v.globo(pa.x, pa.y, r, ta, C.opcionesGlobo(estado, ta, segundos));
+        v.globo(pb.x, pb.y, r, tb, C.opcionesGlobo(estado, tb, segundos));
         contacto(v, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2, par, segundos, vertical);
         ataques(v, par, posiciones, r, segundos, vertical);
         for (const t of [ta, tb]) {
@@ -315,10 +293,19 @@
         }
       },
       toque(punto) {
-        if (!punto || punto.y >= 2) return;
-        const ancho = ctx.region().ancho;
-        if (punto.x < ancho / 3) cambiarPareja(-1);
-        else if (punto.x > (ancho * 2) / 3) cambiarPareja(1);
+        if (!punto) return;
+        if (punto.y < 2) {
+          const lado = C.ladoDelToque(punto, ctx.region().ancho);
+          if (lado) cambiarPareja(lado);
+          return;
+        }
+        // Coordenadas de la escena (empieza dos filas por debajo de la vista).
+        const x = punto.x, y = punto.y - 2;
+        const tocado = globos.find((g) => Math.hypot((x - g.x) * g.aspecto, y - g.y) <= g.r);
+        if (tocado) {
+          ui.tierraSeleccionada = tocado.id;
+          ctx.abrir("expediente");
+        }
       },
     };
   }

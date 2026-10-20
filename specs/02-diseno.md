@@ -59,9 +59,9 @@ dendro-os/
 │   │   ├── arranque.js     # RF-02
 │   │   ├── acceso.js       # RF-03
 │   │   ├── escritorio.js   # RF-04: marco (barra de vistas + barra de estado) y enrutador de vistas
-│   │   ├── colapso.js      # RF-08
-│   │   └── prueba.js       # TEMPORAL: patrón de prueba del renderizador; se borra en la Fase 3
+│   │   └── colapso.js      # RF-08
 │   ├── vistas/             # cada vista se registra en DENDRO.vistas (§6)
+│   │   ├── comun.js        # piezas compartidas: colores y abreviaturas de estado, barra de estabilidad, opciones de globo
 │   │   ├── colision.js     # V1
 │   │   ├── arbol.js        # V2
 │   │   ├── monitor.js      # V3
@@ -312,7 +312,12 @@ Estado = {
   parejaPrincipal: "C-03",                       // ver §4.5
   ataques: [{ desde, hacia, tipo, progreso }],   // para COLISIÓN y ÁRBOL (rojo), ver §4.5
   armas: { [tipo]: { nombre, descripcion } },    // catálogo de data/colisiones.js, para que las vistas no lean data/
-  registro: [...], mensajesDisponibles: [...],
+  registro: [{ fecha, hora, dia, tipo, texto, tierras, origen, corrupta }],  // dia = días desde inicioAlerta
+  mensajesDisponibles: [...],
+  // Ejes temporales ya resueltos, para que las vistas no hagan aritmética de fechas:
+  diaHoy, diasTotales,                           // días desde inicioAlerta hasta hoy / hasta colapsoTotal
+  calendario: [{ dia, fecha }],                  // de inicioAlerta a colapsoTotal
+  serieRamas: [{ fecha, valor, futuro }],        // de primeraColision a colapsoTotal (gráfica de MONITOR)
   modulosCaidos: [...]
 }
 ```

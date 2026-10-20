@@ -102,6 +102,19 @@
       comprobar("El registro no muestra eventos futuros", () => en("2026-11-20").registro.every((ev) => ev.fecha <= "2026-11-20"));
       comprobar("Tierra Gris usa la máscara real", () => en("2026-10-20").tierras.find((t) => t.id === "B-0x09").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
 
+      // Ejes temporales para las vistas
+      comprobar("calendario va de inicioAlerta a colapsoTotal, un día por entrada", () => {
+        const e = en("2026-11-20");
+        return e.calendario.length === e.diasTotales + 1 && e.calendario[0].fecha === cr.inicioAlerta && e.calendario[e.calendario.length - 1].fecha === cr.colapsoTotal;
+      });
+      comprobar("serieRamas: de la primera colisión al colapso, creciente, con el futuro marcado", () => {
+        const s = en("2026-11-20").serieRamas;
+        const creciente = s.every((x, i) => i === 0 || x.valor >= s[i - 1].valor);
+        const corte = s.findIndex((x) => x.futuro);
+        return s[0].valor === 2 && s[s.length - 1].valor === cr.ramasAfectadasFinal && creciente && s[corte - 1].fecha === "2026-11-20";
+      });
+      comprobar("Cada entrada del registro lleva su día desde inicioAlerta", () => en("2026-11-20").registro.every((ev) => ev.dia === DENDRO.reloj.diasEntre(cr.inicioAlerta, ev.fecha)));
+
       const fallos = resultados.filter((r) => !r.ok).length;
       const resumen = document.getElementById("resumen");
       resumen.textContent = fallos ? `✗ ${fallos} de ${resultados.length} pruebas fallan` : `✓ ${resultados.length} de ${resultados.length} pruebas en verde`;

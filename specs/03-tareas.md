@@ -57,12 +57,12 @@
 
 ## Fase 3 — Vistas visuales
 
-- [ ] **T3.1** V1 COLISIÓN: globos de la pareja, separación, regla de Δω, arcos rojos con proyectiles e impactos, desenlaces (fusión, fragmentación, superviviente), estado en texto grande, paneles, minigráfica de Δω, selector ←/→, versión vertical. *(RF-05, RF-06, RF-13)*
-- [ ] **T3.2** V2 ÁRBOL: árbol fractal determinista, nodos azules, ramas que se curvan al acercarse, ataques, aniquiladas apagadas, grietas por fase, selección → EXPEDIENTE, leyenda. *(RF-05, RF-06)*
-- [ ] **T3.3** V3 MONITOR: cuadrícula de 24 globos en miniatura con estado y estabilidad (paginada en móvil) y gráfica logarítmica de ramas afectadas con proyección. *(RF-05)*
-- [ ] **T3.4** V4 OSCILOSCOPIO: retícula, trazas ω_a / ω_b, suma y envolvente `cos(Δω·t)` según `separacion`, variantes por estado, lecturas. *(RF-05)*
-- [ ] **T3.5** V5 EXPEDIENTE: globo, paneles de datos, barra de estabilidad, línea temporal dibujada con eventos y tramo futuro rayado. *(RF-05)*
-- [ ] **T3.6** Borrar `js/pantallas/prueba.js`.
+- [x] **T3.1** V1 COLISIÓN: globos de la pareja, separación, regla de Δω, arcos rojos con proyectiles e impactos, desenlaces (fusión, fragmentación, superviviente), estado en texto grande, paneles, minigráfica de Δω, selector ←/→, versión vertical. *(RF-05, RF-06, RF-13)*
+- [x] **T3.2** V2 ÁRBOL: árbol fractal determinista, nodos azules, ramas que se curvan al acercarse, ataques, aniquiladas apagadas, grietas por fase, selección → EXPEDIENTE, leyenda. *(RF-05, RF-06)*
+- [x] **T3.3** V3 MONITOR: cuadrícula de 24 globos en miniatura con estado y estabilidad (paginada en móvil) y gráfica logarítmica de ramas afectadas con proyección. *(RF-05)*
+- [x] **T3.4** V4 OSCILOSCOPIO: retícula, trazas ω_a / ω_b, suma y envolvente `cos(Δω·t)` según `separacion`, variantes por estado, lecturas. *(RF-05)*
+- [x] **T3.5** V5 EXPEDIENTE: globo, paneles de datos, barra de estabilidad, línea temporal dibujada con eventos y tramo futuro rayado. *(RF-05)*
+- [x] **T3.6** Borrar `js/pantallas/prueba.js`.
 
 **Verificación:** con `?fecha=2026-10-25`, COLISIÓN muestra Velmora/Ostrakh con arcos rojos de Ostrakh; con `?fecha=2026-11-20`, C-03 en hostilidades con misiles en ambos sentidos, MONITOR con C-01 resuelta y C-02 fusionada; OSCILOSCOPIO con latidos más largos el 11-16 que el 11-12 para C-03.
 

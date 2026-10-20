@@ -26,7 +26,7 @@
   }
 
   function irArranque() {
-    mostrar(DENDRO.arranque.crear({ fecha, estado: estadoDia, alTerminar: parametro("prueba") === "1" ? irPrueba : irAcceso }));
+    mostrar(DENDRO.arranque.crear({ fecha, estado: estadoDia, alTerminar: irAcceso }));
   }
 
   function irAcceso() {
@@ -35,16 +35,6 @@
 
   function irEscritorio() {
     mostrar(DENDRO.escritorio.crear({ estado: estadoDia, salir: () => DENDRO.monitor.apagar() }));
-  }
-
-  function irPrueba() {
-    mostrar(DENDRO.prueba.crear({
-      fecha,
-      modo: () => modo,
-      alSalir: () => DENDRO.monitor.apagar(),
-      alReiniciar: irArranque,
-      alAlternarFPS: alternarMedidor,
-    }));
   }
 
   // ── Medidor de rendimiento y calidad adaptativa ───────────────────────────
