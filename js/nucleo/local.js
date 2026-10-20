@@ -16,24 +16,33 @@
     try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (_) { /* sin almacenamiento: dura la sesión */ }
   }
 
+  // Las entradas de versiones anteriores llevaban fecha y hora en vez de instante.
+  function migrar(e) {
+    if (typeof e.instante === "number") return e;
+    try {
+      return { instante: DENDRO.reloj.aInstante(`${e.fecha}T${String(e.hora || "00:00").slice(0, 5)}`), tipo: e.tipo, texto: e.texto, tierras: e.tierras || [], origen: "local" };
+    } catch (_) { return null; }
+  }
+
   // Memoria de respaldo por si localStorage no está disponible.
-  const memoria = { registro: leer(CLAVES.registro, []), leidos: leer(CLAVES.leidos, []), desbloqueos: leer(CLAVES.desbloqueos, []) };
+  const memoria = {
+    registro: leer(CLAVES.registro, []).map(migrar).filter(Boolean),
+    leidos: leer(CLAVES.leidos, []),
+    desbloqueos: leer(CLAVES.desbloqueos, []),
+  };
 
   function registrar(tipo, texto) {
-    const entrada = {
-      fecha: DENDRO.reloj.fechaHoy(), hora: DENDRO.reloj.horaAgencia(),
-      tipo, texto, tierras: [], origen: "local",
-    };
+    const entrada = { instante: DENDRO.reloj.ahora(), tipo, texto, tierras: [], origen: "local" };
     memoria.registro.unshift(entrada);
     memoria.registro.length = Math.min(memoria.registro.length, MAXIMO_REGISTRO);
     guardar(CLAVES.registro, memoria.registro);
     return entrada;
   }
 
-  // Solo las del día simulado o anteriores: con ?fecha= en el pasado no aparecen acciones "del futuro".
+  // Solo las anteriores al instante actual: con ?fecha= en el pasado no aparecen acciones "del futuro".
   function entradas() {
-    const hoy = DENDRO.reloj.fechaHoy();
-    return memoria.registro.filter((e) => e.fecha <= hoy);
+    const ahora = DENDRO.reloj.ahora();
+    return memoria.registro.filter((e) => e.instante <= ahora).map((e) => ({ ...e, tau: DENDRO.tau.de(e.instante) }));
   }
 
   function leido(id) { return memoria.leidos.includes(id); }

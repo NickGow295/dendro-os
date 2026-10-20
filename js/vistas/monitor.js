@@ -1,5 +1,5 @@
 // V3 MONITOR (02-diseno.md §6): las 24 tierras en miniatura con su estado, y la gráfica logarítmica
-// de ramas afectadas. La proyección se dibuja siempre, pero el valor final y la fecha del colapso
+// de ramas afectadas. La proyección se dibuja siempre, pero el valor final y el τ del colapso
 // salen como "???" corruptos hasta la fase CRÍTICO.
 (function (DENDRO) {
   "use strict";
@@ -24,7 +24,7 @@
 
     // "???" que cambia de caracteres a saltos, con semilla del día y del instante.
     function corrupto(texto, ahora) {
-      const rng = DENDRO.prng.crear(estado.fecha, "corrupto", Math.floor(ahora / 110));
+      const rng = DENDRO.prng.crear(estado.dia, "corrupto", Math.floor(ahora / 110));
       return Array.from(texto).map((c) => (rng() < 0.4 ? RUIDO_TEXTO[Math.floor(rng() * RUIDO_TEXTO.length)] : c)).join("");
     }
 
@@ -66,7 +66,8 @@
 
     // Etiquetas de texto de la gráfica (los trazos van en vectores()).
     function dibujarEjes(g) {
-      const ultimoPasado = estado.serieRamas.filter((s) => !s.futuro).pop();
+      const serie = estado.ejes.serieRamas;
+      const ultimoPasado = serie.filter((s) => !s.futuro).pop();
       g.centrar(4, revelado ? `DE ${DENDRO.escritorio.formatoRamas(R)}` : "", "textoTenue");
       const area = areaGrafica(g);
       const decadas = Math.floor(Math.log10(R));
@@ -76,8 +77,8 @@
         const y = Math.round(area.y + area.alto * (1 - k / Math.log10(R)));
         g.escribir(0, y, k === 0 ? "1" : k === 1 ? "10" : "10" + SUPERINDICES[k], "textoTenue");
       }
-      g.escribir(area.x, g.alto - 1, estado.serieRamas[0].fecha.slice(5), "textoTenue");
-      if (revelado) g.derecha(g.alto - 1, estado.serieRamas[estado.serieRamas.length - 1].fecha.slice(5), "arma");
+      g.escribir(area.x, g.alto - 1, DENDRO.tau.corto(serie[0].instante), "textoTenue");
+      if (revelado) g.derecha(g.alto - 1, DENDRO.tau.corto(serie[serie.length - 1].instante), "arma");
     }
 
     function areaGrafica(g) {
@@ -104,7 +105,7 @@
     }
 
     function vectoresGrafica(v, ahora) {
-      const serie = estado.serieRamas, area = areaGrafica(grafica);
+      const serie = estado.ejes.serieRamas, area = areaGrafica(grafica);
       const logR = Math.log10(R);
       const px = (i) => area.x + (i / (serie.length - 1)) * area.ancho;
       const py = (valor) => area.y + area.alto * (1 - Math.log10(Math.max(1, valor)) / logR);
@@ -142,7 +143,7 @@
         const [hx, hy] = pasado[pasado.length - 1];
         v.linea(hx, area.y, hx, area.y + area.alto, "ambar", { discontinua: [2, 3], alfa: 0.7 });
         v.punto(hx, hy, "ambar", { tam: 3 });
-        v.texto(hx, area.y - 0.1, `HOY ${estado.fecha.slice(5)}`, "ambar", { tam: 0.9, alinear: "center", base: "bottom" });
+        v.texto(hx, area.y - 0.1, `AHORA ${DENDRO.tau.corto(estado.instante)}`, "ambar", { tam: 0.9, alinear: "center", base: "bottom" });
       } else {
         v.texto(area.x + area.ancho / 2, area.y + area.alto / 2, "SIN COLISIONES REGISTRADAS", "textoTenue", { tam: 1, alinear: "center" });
       }

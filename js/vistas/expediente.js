@@ -9,7 +9,8 @@
   const COLUMNA_VALOR = 16;
 
   function crear(ctx) {
-    const { estado, ui } = ctx;
+    const { ui } = ctx;
+    let estado = ctx.estado;
     const ids = estado.tierras.map((t) => t.id);
     if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
     let evento = -1;   // índice del evento resaltado en la línea temporal (−1: el último)
@@ -90,7 +91,7 @@
       const ev = eventoActual();
       if (ev) {
         const n = eventos().indexOf(ev) + 1;
-        zonaLinea.escribir(1, zonaLinea.alto - 2, `${ev.fecha} ${ev.hora} [${ev.tipo}] (${n}/${eventos().length})`, COLOR_TIPO[ev.tipo]);
+        zonaLinea.escribir(1, zonaLinea.alto - 2, `${DENDRO.tau.instante(ev.instante)} [${ev.tipo}] (${n}/${eventos().length})`, COLOR_TIPO[ev.tipo]);
         zonaLinea.escribir(1, zonaLinea.alto - 1, ev.texto.slice(0, zonaLinea.ancho - 2), "texto");
       } else {
         zonaLinea.escribir(1, zonaLinea.alto - 1, "SIN EVENTOS REGISTRADOS PARA ESTA RAMA", "textoTenue");
@@ -98,27 +99,33 @@
       if (ancho) zonaLinea.derecha(zonaLinea.alto - 2, "MAYÚS+←→ EVENTOS ", "textoTenue");
     }
 
+    // Posición en el eje (de inicioAlerta al colapso) de un instante; x0 y x1 en celdas.
+    function eje(x0, x1) {
+      const { desde, hasta } = estado.ejes;
+      return (ms) => x0 + ((x1 - x0) * Math.max(0, Math.min(hasta, ms) - desde)) / (hasta - desde);
+    }
+
     function lineaTemporal(v) {
-      const total = estado.diasTotales, hoy = Math.max(0, Math.min(total, estado.diaHoy));
-      const x0 = 1, x1 = v.ancho - 1, y = 1.6;
-      const px = (dia) => x0 + ((x1 - x0) * dia) / total;
+      const { desde, hasta } = estado.ejes;
+      const x0 = 1, x1 = v.ancho - 1, y = 1.6, px = eje(x0, x1);
+      const ahora = Math.max(desde, Math.min(hasta, estado.instante));
       v.linea(x0, y, x1, y, "ambarTenue");
-      // Marcas semanales con su fecha
-      for (const c of estado.calendario) {
-        if (c.dia % 7) continue;
-        v.linea(px(c.dia), y - 0.3, px(c.dia), y + 0.3, "ambarTenue");
-        v.texto(px(c.dia), y + 0.4, c.fecha.slice(5), "textoTenue", { tam: 0.8, alinear: "center" });
+      // Marcas cada 7 ciclos con su ciclo τ
+      const semana = 7 * DENDRO.tau.ciclo();
+      for (let ms = desde; ms <= hasta; ms += semana) {
+        v.linea(px(ms), y - 0.3, px(ms), y + 0.3, "ambarTenue");
+        v.texto(px(ms), y + 0.4, String(DENDRO.tau.partes(ms).ciclo), "textoTenue", { tam: 0.8, alinear: "center" });
       }
       // Futuro rayado
-      if (hoy < total) {
-        for (let x = px(hoy) + 0.6; x < x1; x += 1.2) v.linea(x, y - 0.9, x + 0.8, y + 0.0, "ambarTenue", { alfa: 0.35 });
-        v.texto((px(hoy) + x1) / 2, y - 1.5, "[DATOS NO DISPONIBLES]", "textoTenue", { tam: 0.8, alinear: "center" });
+      if (ahora < hasta) {
+        for (let x = px(ahora) + 0.6; x < x1; x += 1.2) v.linea(x, y - 0.9, x + 0.8, y + 0.0, "ambarTenue", { alfa: 0.35 });
+        v.texto((px(ahora) + x1) / 2, y - 1.5, "[DATOS NO DISPONIBLES]", "textoTenue", { tam: 0.8, alinear: "center" });
       }
-      v.linea(px(hoy), y - 1.2, px(hoy), y + 0.4, "ambar", { grosor: 1.6 });
-      v.texto(px(hoy), y - 1.3, "HOY", "ambar", { tam: 0.8, alinear: "center", base: "bottom" });
+      v.linea(px(ahora), y - 1.2, px(ahora), y + 0.4, "ambar", { grosor: 1.6 });
+      v.texto(px(ahora), y - 1.3, "AHORA", "ambar", { tam: 0.8, alinear: "center", base: "bottom" });
       const actual = eventoActual();
       for (const ev of eventos()) {
-        const x = px(Math.max(0, ev.dia)), resaltado = ev === actual;
+        const x = px(ev.instante), resaltado = ev === actual;
         v.circulo(x, y, resaltado ? 0.55 : 0.35, COLOR_TIPO[ev.tipo], { relleno: COLOR_TIPO[ev.tipo], rellenoAlfa: resaltado ? 0.9 : 0.5 });
         if (resaltado) v.circulo(x, y, 0.9, "ambar", { grosor: window.DENDRO_CONFIG.vectores.grosorActivo });
       }
@@ -161,6 +168,12 @@
       animada: true,
       dibujar,
       vectores,
+      actualizar(nuevo) {
+        // El evento resaltado sigue siendo el mismo aunque lleguen otros nuevos.
+        const resaltado = evento >= 0 ? eventoActual() : null;
+        estado = nuevo;
+        if (resaltado) evento = eventos().findIndex((e) => e.instante === resaltado.instante && e.texto === resaltado.texto);
+      },
       tecla(ev) {
         const horizontal = ev.key === "ArrowLeft" ? -1 : ev.key === "ArrowRight" ? 1 : 0;
         const vertical = ev.key === "ArrowUp" ? -1 : ev.key === "ArrowDown" ? 1 : 0;
@@ -186,9 +199,9 @@
           const lista = eventos();
           if (!lista.length) return;
           const x = punto.x - (zonaLinea.x - reg.x);
-          const px = (dia) => 1 + ((zonaLinea.ancho - 2) * dia) / estado.diasTotales;
+          const px = eje(1, zonaLinea.ancho - 1);
           let mejor = 0;
-          lista.forEach((e2, i) => { if (Math.abs(px(e2.dia) - x) < Math.abs(px(lista[mejor].dia) - x)) mejor = i; });
+          lista.forEach((e2, i) => { if (Math.abs(px(e2.instante) - x) < Math.abs(px(lista[mejor].instante) - x)) mejor = i; });
           evento = mejor;
           ctx.redibujar();
         }

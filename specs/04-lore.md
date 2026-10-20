@@ -71,7 +71,7 @@ La Estación Raíz no está en ninguna rama, así que no usa calendarios: cuenta
 | Pulso | `p` | 100 latidos | Registro, mensajes, cuentas atrás cortas |
 | Latido | `l` | — | Solo en el reloj de la barra de estado, que late visiblemente |
 
-- Internamente: 1 ciclo = 86 400 s reales, con época el **2006-03-14 00:00** (Bogotá). Así el 20/10/2026 00:00 es exactamente **τ 7525.000**, la primera colisión es **τ 7532.137** y el colapso es **τ 7582.583**. Todo es configurable (`config.tau`).
+- Internamente: 1 ciclo = 86 400 s reales, con época el **2006-03-14 00:00** (Bogotá). Así el 20/10/2026 00:00 es exactamente **τ 7525.000**, la primera colisión (03:17) es **τ 7532.136** (τ se trunca: 03:17 son 0.1368 de ciclo) y el colapso es **τ 7582.583**. Todo es configurable (`config.tau`).
 - **Formato**:
   - Instante: `τ 7532.137` (ciclo y pulso, con punto). En la barra de estado se añaden los latidos: `τ 7532.137·42`.
   - Duración y cuenta atrás: `T−3.208 c` si queda más de un ciclo; `T−412 p` si queda menos; `T−37 l` en el último pulso. Después del instante, `T+…`.

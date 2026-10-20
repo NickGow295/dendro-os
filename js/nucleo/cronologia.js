@@ -1,21 +1,18 @@
-// ★ Motor de cronología (02-diseno.md §4): calcularEstado("AAAA-MM-DD") → Estado.
-// Función pura de la fecha: sin DOM, sin localStorage, sin Math.random(). Se ejecuta también en Node.
+// ★ Motor de cronología (02-diseno.md §4): calcularEstado(instante) → Estado.
+// Función pura del instante (ms o "AAAA-MM-DDThh:mm" local), truncado al minuto: sin DOM, sin
+// localStorage, sin Math.random(). Se ejecuta también en Node.
 (function (DENDRO) {
   "use strict";
 
   const cfg = () => window.DENDRO_CONFIG;
   const datos = () => window.DENDRO_DATOS || {};
 
-  // Umbrales y ventanas con nombre (02-diseno.md §4.4 y §4.5).
+  // Umbrales con nombre (02-diseno.md §4.3).
   const UMBRAL_COMUNICACIONES = 0.5;
   const UMBRAL_MONITOR = 0.7;
   const UMBRAL_CONTENCION = 0.9;
-  const DIAS_APROXIMACION = 7;
-  const DIAS_HOSTILIDADES = 3;          // dd 1..3
-  const INICIO_ATAQUE_AGRESOR = -2;     // el agresor dispara desde dd −2
-  const INICIO_ATAQUE_RESPUESTA = 0;    // en mutua-hostil, el otro responde desde el contacto
-  const FIN_ATAQUE = 3;
-  const SERIE_DESDE = -9, SERIE_HASTA = 2; // ventana de la serie de Δω para las minigráficas
+  const PASO_SERIE_RAMAS = 3 * 3600000;      // muestras de la gráfica de ramas afectadas
+  const MUESTRAS_SERIE_DELTA = 48;            // puntos de la minigráfica de Δω de cada pareja
 
   const FASES = [
     { nombre: "NOMINAL", alerta: "VERDE" },
@@ -35,75 +32,120 @@
 
   const limitar = (x, a, b) => Math.max(a, Math.min(b, x));
   const esHostil = (postura) => postura === "hostil" || postura === "mutua-hostil";
-  const dias = (a, b) => DENDRO.reloj.diasEntre(a, b);
+  const aMs = (x) => (typeof x === "number" ? x : DENDRO.reloj.aInstante(x));
+  const alMinuto = (ms) => Math.floor(ms / DENDRO.reloj.MINUTO) * DENDRO.reloj.MINUTO;
 
-  // ── Progreso, fase e intensidad de un día ─────────────────────────────────
-  function progresoDe(fecha) {
+  // Hitos de config en ms (se recalculan si cambia la config, p. ej. en las pruebas).
+  let hitosCache = null;
+  function hitos() {
     const c = cfg().cronologia;
-    const p = limitar(dias(c.primeraColision, fecha) / dias(c.primeraColision, c.colapsoTotal), 0, 1);
+    const clave = [c.zonaHoraria, c.inicioAlerta, c.primeraColision, c.inicioRectaFinal, c.colapsoTotal].join("|");
+    if (!hitosCache || hitosCache.clave !== clave) {
+      hitosCache = {
+        clave,
+        t0: aMs(c.inicioAlerta), t1: aMs(c.primeraColision),
+        tr: aMs(c.inicioRectaFinal), tf: aMs(c.colapsoTotal),
+      };
+    }
+    return hitosCache;
+  }
+
+  // ── Progreso, fase e intensidad (§4.3) ────────────────────────────────────
+  function progresoDe(t) {
+    const { t0, t1, tr, tf } = hitos();
+    const p = limitar((t - t1) / (tf - t1), 0, 1);
     let fase;
-    if (fecha < c.inicioAlerta) fase = 0;
-    else if (fecha < c.primeraColision) fase = 1;
-    else if (fecha >= c.colapsoTotal) fase = 5;
+    if (t < t0) fase = 0;
+    else if (t < t1) fase = 1;
+    else if (t >= tf) fase = 5;
     else fase = p < 0.35 ? 2 : p < 0.8 ? 3 : 4;
-    const intensidad = (fase < 2 ? 0.05 * fase : 0.1 + 0.9 * p * p) * cfg().efectos.glitchMaximo;
-    return { p, fase, intensidad };
+    const rectaFinal = t >= tr && t < tf;
+    const intensidad = (fase < 2 ? 0.05 * fase : rectaFinal ? 1 : 0.1 + 0.9 * p * p) * cfg().efectos.glitchMaximo;
+    return { p, fase, rectaFinal, intensidad };
   }
 
-  function ramasAfectadas(fecha, p) {
-    const c = cfg().cronologia;
-    if (fecha < c.primeraColision) return 0;
-    return Math.round(2 * Math.pow(c.ramasAfectadasFinal / 2, p));
+  function ramasAfectadas(t, p) {
+    if (t < hitos().t1) return 0;
+    return Math.round(2 * Math.pow(cfg().cronologia.ramasAfectadasFinal / 2, p));
   }
 
-  // ── Parejas ───────────────────────────────────────────────────────────────
+  // ── Parejas (§4.5) ────────────────────────────────────────────────────────
+  // Ventanas en ms; se comprimen cuando el contacto cae cerca del colapso.
+  function ventanas(contacto) {
+    const w = cfg().multiverso.ventanas, ciclo = DENDRO.tau.ciclo();
+    const resto = (hitos().tf - contacto) / ciclo;
+    const A = Math.min(w.aproximacionMax, w.factorAproximacion * resto) * ciclo;
+    const H = Math.min(w.tramoMax, w.factorTramo * resto) * ciclo;
+    const K = Math.min(w.contactoMax * ciclo, H / 4);
+    return { A, H, K, ataque: -w.inicioAtaque * A };
+  }
+
   function superviviente(par) {
     return par.desenlace.startsWith("superviviente:") ? par.desenlace.split(":")[1] : null;
   }
 
-  function estadoPareja(par, dd, colapso) {
+  function estadoPareja(par, dt, v, colapso) {
     if (colapso) return "COLAPSO";
-    if (dd < -DIAS_APROXIMACION) return "ESTABLE";
-    if (dd < 0) return "APROXIMACIÓN";
-    if (dd === 0) return "CONTACTO";
-    if (dd <= DIAS_HOSTILIDADES) return esHostil(par.postura) ? "HOSTILIDADES" : "INTERFERENCIA";
+    if (dt < -v.A) return "ESTABLE";
+    if (dt < 0) return "APROXIMACIÓN";
+    if (dt < v.K) return "CONTACTO";
+    if (dt < v.H) return esHostil(par.postura) ? "HOSTILIDADES" : "INTERFERENCIA";
     if (par.desenlace === "aniquilacion") return "ANIQUILADA";
     if (par.desenlace === "fusion") return "FUSIONADA";
     if (par.desenlace === "colapso") return "COLAPSO";
     return "SUPERVIVIENTE";
   }
 
-  function deltaOmegaEn(dd, d0) {
-    if (dd < -DIAS_APROXIMACION) return d0;
-    return (d0 * Math.max(0, -dd)) / DIAS_APROXIMACION;
+  function deltaOmegaEn(dt, v, d0) {
+    return d0 * limitar(-dt / v.A, 0, 1);
   }
 
-  function calcularPareja(par, fecha, tierrasPorId, colapso) {
+  // Parejas de los datos con su contacto en ms (cacheadas por lista de datos).
+  let parejasCache = null;
+  function parejasBase() {
+    const lista = datos().colisiones || [];
+    if (!parejasCache || parejasCache.lista !== lista || parejasCache.clave !== hitos().clave) {
+      parejasCache = {
+        lista, clave: hitos().clave,
+        parejas: lista.map((par) => {
+          const contacto = aMs(par.contacto);
+          return { ...par, contacto, ventanas: ventanas(contacto) };
+        }),
+      };
+    }
+    return parejasCache.parejas;
+  }
+
+  function calcularPareja(par, t, tierrasPorId, colapso) {
     const d0 = Math.abs(tierrasPorId[par.a].omega - tierrasPorId[par.b].omega);
-    const dd = dias(par.contacto, fecha);
-    const deltaOmega = colapso ? 0 : deltaOmegaEn(dd, d0);
+    const v = par.ventanas, dt = t - par.contacto;
+    const deltaOmega = colapso ? 0 : deltaOmegaEn(dt, v, d0);
+    const desde = par.contacto - 1.3 * v.A, hasta = par.contacto + v.H;
     const serie = [];
-    for (let k = SERIE_DESDE; k <= SERIE_HASTA; k++) {
-      serie.push({ fecha: DENDRO.reloj.sumarDias(par.contacto, k), valor: deltaOmegaEn(k, d0), futuro: k > dd });
+    for (let i = 0; i < MUESTRAS_SERIE_DELTA; i++) {
+      const ms = desde + ((hasta - desde) * i) / (MUESTRAS_SERIE_DELTA - 1);
+      serie.push({ tau: DENDRO.tau.de(ms), instante: ms, valor: deltaOmegaEn(ms - par.contacto, v, d0), futuro: ms > t });
     }
     return {
       ...par,
-      estado: estadoPareja(par, dd, colapso),
-      hostil: !colapso && esHostil(par.postura) && dd >= INICIO_ATAQUE_AGRESOR && dd <= FIN_ATAQUE,
+      estado: estadoPareja(par, dt, v, colapso),
+      hostil: !colapso && esHostil(par.postura) && dt >= v.ataque && dt < v.H,
       deltaOmega0: d0,
       deltaOmega,
       separacion: d0 > 0 ? deltaOmega / d0 : 0,
-      diasParaContacto: -dd,               // negativo: días desde el contacto
+      paraContacto: par.contacto - t,          // > 0: falta; < 0: ya pasó
+      desvanecimiento: limitar((dt - v.H) / (v.H / 2), 0, 1),
       serieDeltaOmega: serie,
     };
   }
 
-  function ataquesDe(par, dd) {
-    if (!esHostil(par.postura) || dd < INICIO_ATAQUE_AGRESOR || dd > FIN_ATAQUE) return [];
-    const progreso = (dd - INICIO_ATAQUE_AGRESOR) / (FIN_ATAQUE - INICIO_ATAQUE_AGRESOR);
+  function ataquesDe(par, t) {
+    const v = par.ventanas, dt = t - par.contacto;
+    if (!esHostil(par.postura) || dt < v.ataque || dt >= v.H) return [];
+    const progreso = (dt - v.ataque) / (v.H - v.ataque);
     const otro = (id) => (id === par.a ? par.b : par.a);
     const atacantes = [par.agresor];
-    if (par.postura === "mutua-hostil" && dd >= INICIO_ATAQUE_RESPUESTA) atacantes.push(otro(par.agresor));
+    if (par.postura === "mutua-hostil" && dt >= 0) atacantes.push(otro(par.agresor));
     const lista = [];
     for (const desde of atacantes) {
       for (const tipo of (par.armas && par.armas[desde]) || []) {
@@ -113,12 +155,12 @@
     return lista;
   }
 
-  // Pareja que abre COLISIÓN (02-diseno.md §4.5).
+  // Pareja que abre COLISIÓN (§4.5).
   function parejaPrincipal(parejas) {
     const activas = parejas.filter((x) => ["CONTACTO", "HOSTILIDADES", "INTERFERENCIA"].includes(x.estado));
     if (activas.length) return activas.reduce((m, x) => (x.contacto > m.contacto ? x : m)).id;
     const aproximando = parejas.filter((x) => x.estado === "APROXIMACIÓN");
-    if (aproximando.length) return aproximando.reduce((m, x) => (x.diasParaContacto < m.diasParaContacto ? x : m)).id;
+    if (aproximando.length) return aproximando.reduce((m, x) => (x.paraContacto < m.paraContacto ? x : m)).id;
     const estables = parejas.filter((x) => x.estado === "ESTABLE");
     if (estables.length) return estables.reduce((m, x) => (x.contacto < m.contacto ? x : m)).id;
     return parejas.reduce((m, x) => (x.contacto > m.contacto ? x : m)).id;
@@ -130,40 +172,35 @@
     return par.estado;
   }
 
-  function estabilidad(estado, par) {
-    if (estado === "APROXIMACIÓN") return Math.round(100 - (60 * (DIAS_APROXIMACION + -par.diasParaContacto)) / DIAS_APROXIMACION);
+  function estabilidad(estado, par, t) {
+    if (estado === "APROXIMACIÓN") return Math.round(100 - 60 * (1 + (t - par.contacto) / par.ventanas.A));
     return ESTABILIDAD[estado];
   }
 
-  // ── Registro ──────────────────────────────────────────────────────────────
-  function hora(rng) {
-    const dos = (n) => String(n).padStart(2, "0");
-    return `${dos(Math.floor(rng() * 24))}:${dos(Math.floor(rng() * 60))}:${dos(Math.floor(rng() * 60))}`;
-  }
-
-  function entrada(fecha, tipo, texto, tierras, origen) {
-    return { fecha, hora: hora(DENDRO.prng.crear(fecha, texto)), tipo, texto, tierras: tierras || [], origen };
+  // ── Registro (§4.7) ───────────────────────────────────────────────────────
+  function entrada(instante, tipo, texto, tierras, origen) {
+    return { instante, tipo, texto, tierras: tierras || [], origen };
   }
 
   function eventosDePareja(par, tierrasPorId) {
     const N = (id) => tierrasPorId[id].nombre.toLocaleUpperCase("es");
     const arma = (id) => ((par.armas && par.armas[id]) || []).map((t) => (datos().armas[t] || { nombre: t }).nombre.toLocaleUpperCase("es")).join(" Y ");
     const otro = (id) => (id === par.a ? par.b : par.a);
-    const en = (k) => DENDRO.reloj.sumarDias(par.contacto, k);
+    const v = par.ventanas, en = (dt) => alMinuto(par.contacto + dt);
     const ids = [par.a, par.b];
     const lista = [
-      entrada(en(-DIAS_APROXIMACION), "COLISIÓN", `CONVERGENCIA DETECTADA: ${N(par.a)} / ${N(par.b)} (${par.id}).`, ids, "pareja"),
+      entrada(en(-v.A), "COLISIÓN", `CONVERGENCIA DETECTADA: ${N(par.a)} / ${N(par.b)} (${par.id}).`, ids, "pareja"),
       entrada(en(0), "COLISIÓN", `CONTACTO CONFIRMADO: ${N(par.a)} / ${N(par.b)} (${par.id}).`, ids, "pareja"),
     ];
     if (esHostil(par.postura)) {
-      lista.push(entrada(en(INICIO_ATAQUE_AGRESOR), "HOSTIL", `${N(par.agresor)} ABRE FUEGO CONTRA ${N(otro(par.agresor))}: ${arma(par.agresor)}.`, ids, "pareja"));
+      lista.push(entrada(en(v.ataque), "HOSTIL", `${N(par.agresor)} ABRE FUEGO CONTRA ${N(otro(par.agresor))}: ${arma(par.agresor)}.`, ids, "pareja"));
       if (par.postura === "mutua-hostil") {
-        lista.push(entrada(en(INICIO_ATAQUE_RESPUESTA), "HOSTIL", `${N(otro(par.agresor))} RESPONDE: ${arma(otro(par.agresor))}.`, ids, "pareja"));
+        lista.push(entrada(en(0), "HOSTIL", `${N(otro(par.agresor))} RESPONDE: ${arma(otro(par.agresor))}.`, ids, "pareja"));
       }
-      lista.push(entrada(en(1), "HOSTIL", `HOSTILIDADES ABIERTAS EN EL CONTACTO ${N(par.a)} / ${N(par.b)}.`, ids, "pareja"));
+      lista.push(entrada(en(v.K), "HOSTIL", `HOSTILIDADES ABIERTAS EN EL CONTACTO ${N(par.a)} / ${N(par.b)}.`, ids, "pareja"));
     } else {
       const detalle = TEXTO_POSTURA[par.postura].replace("{A}", N(par.a));
-      lista.push(entrada(en(1), "COLISIÓN", `INTERFERENCIA EN EL CONTACTO ${N(par.a)} / ${N(par.b)}: ${detalle}.`, ids, "pareja"));
+      lista.push(entrada(en(v.K), "COLISIÓN", `INTERFERENCIA EN EL CONTACTO ${N(par.a)} / ${N(par.b)}: ${detalle}.`, ids, "pareja"));
     }
     const s = superviviente(par);
     const desenlace = {
@@ -171,7 +208,7 @@
       fusion: `DESENLACE ${par.id}: ${N(par.a)} Y ${N(par.b)} SE FUNDEN EN UNA SOLA RAMA.`,
       colapso: `DESENLACE ${par.id}: EL ANCLA CEDE.`,
     }[par.desenlace] || `DESENLACE ${par.id}: ${N(s)} SOBREVIVE. ${N(otro(s))} SE PIERDE.`;
-    lista.push(entrada(en(DIAS_HOSTILIDADES + 1), "COLISIÓN", desenlace, ids, "pareja"));
+    lista.push(entrada(en(v.H), "COLISIÓN", desenlace, ids, "pareja"));
     return lista;
   }
 
@@ -184,78 +221,92 @@
     (t, rng) => `ECO EN EL CUADRANTE ${DENDRO.prng.elegir(rng, ["BAJO", "ALTO", "LATERAL", "DE LA COPA"])}`,
   ];
 
-  function ruidoDelDia(fecha, tierras) {
-    const rng = DENDRO.prng.crear(fecha, "ruido");
-    const n = 3 + Math.floor(rng() * 3) + Math.round(progresoDe(fecha).intensidad * 6);
+  // Ruido de un día local: cantidad, textos e instantes salen de su semilla.
+  function ruidoDelDia(dia, tierras) {
+    const inicio = DENDRO.reloj.aInstante(dia);
+    const fin = DENDRO.reloj.aInstante(DENDRO.reloj.sumarDias(dia, 1));
+    const rng = DENDRO.prng.crear(dia, "ruido");
+    const n = 3 + Math.floor(rng() * 3) + Math.round(progresoDe(inicio + (fin - inicio) / 2).intensidad * 6);
     const lista = [];
     for (let k = 0; k < n; k++) {
       const tierra = DENDRO.prng.elegir(rng, tierras);
       const texto = DENDRO.prng.elegir(rng, RUIDO)(tierra, rng);
-      lista.push({ fecha, hora: hora(rng), tipo: "SISTEMA", texto, tierras: [], origen: "ruido" });
+      lista.push(entrada(alMinuto(inicio + rng() * (fin - inicio)), "SISTEMA", texto, [], "ruido"));
     }
     return lista;
   }
 
-  function construirRegistro(fecha, parejasDatos, tierrasPorId, intensidad) {
-    const c = cfg().cronologia;
+  function construirRegistro(t, parejas, tierrasPorId, intensidad) {
+    const { t0, tf } = hitos();
     const tierras = Object.values(tierrasPorId);
-    const fijos = (datos().eventos || []).map((ev) => ({ ...ev, hora: hora(DENDRO.prng.crear(ev.fecha, ev.texto)), origen: "fijo" }));
-    const repetido = (ev) => fijos.some((f) => f.fecha === ev.fecha && f.tipo === ev.tipo && f.tierras.some((t) => ev.tierras.includes(t)));
-    const dePareja = parejasDatos.flatMap((par) => eventosDePareja(par, tierrasPorId))
-      .filter((ev) => ev.fecha < c.colapsoTotal && !repetido(ev));
-    const colapso = [entrada(c.colapsoTotal, "SISTEMA", "PÉRDIDA TOTAL DE COHESIÓN EN EL SUSTRATO M11.", [], "fijo")];
+    const fijos = (datos().eventos || []).map((ev) => entrada(aMs(ev.instante), ev.tipo, ev.texto, ev.tierras, "fijo"));
+    // Un evento de pareja que ya cuenta un evento fijo (mismo tipo, mismas tierras, menos de medio ciclo) sobra.
+    const medioCiclo = DENDRO.tau.ciclo() / 2;
+    const repetido = (ev) => fijos.some((f) => f.tipo === ev.tipo && Math.abs(f.instante - ev.instante) < medioCiclo &&
+      f.tierras.some((x) => ev.tierras.includes(x)));
+    const dePareja = parejas.flatMap((par) => eventosDePareja(par, tierrasPorId))
+      .filter((ev) => ev.instante < tf && !repetido(ev));
+    const colapso = [entrada(tf, "SISTEMA", "PÉRDIDA TOTAL DE COHESIÓN EN EL SUSTRATO M11.", [], "fijo")];
 
     const ruido = [];
-    const ultimoDia = fecha < c.colapsoTotal ? fecha : DENDRO.reloj.sumarDias(c.colapsoTotal, -1);
-    let dia = fecha < c.inicioAlerta ? DENDRO.reloj.sumarDias(fecha, -2) : c.inicioAlerta;
-    for (; dia <= ultimoDia; dia = DENDRO.reloj.sumarDias(dia, 1)) ruido.push(...ruidoDelDia(dia, tierras));
+    const ultimo = DENDRO.reloj.diaLocal(Math.min(t, tf - 1));
+    let dia = t < t0 ? DENDRO.reloj.sumarDias(DENDRO.reloj.diaLocal(t), -2) : DENDRO.reloj.diaLocal(t0);
+    for (; dia <= ultimo; dia = DENDRO.reloj.sumarDias(dia, 1)) ruido.push(...ruidoDelDia(dia, tierras));
 
-    const corrupcion = DENDRO.prng.crear(fecha, "corrupcion");
+    // La corrupción visual depende del día de hoy y de cada entrada, no de su posición en la lista.
+    const hoy = DENDRO.reloj.diaLocal(t);
     return [...fijos, ...dePareja, ...colapso, ...ruido]
-      .filter((ev) => ev.fecha <= fecha)
-      .sort((x, y) => (x.fecha + x.hora + x.texto < y.fecha + y.hora + y.texto ? 1 : -1))
-      .map((ev) => ({ ...ev, dia: dias(c.inicioAlerta, ev.fecha), corrupta: corrupcion() < intensidad * 0.35 }));
+      .filter((ev) => ev.instante <= t)
+      .sort((x, y) => y.instante - x.instante || (x.texto < y.texto ? 1 : -1))
+      .map((ev) => ({
+        ...ev,
+        tau: DENDRO.tau.de(ev.instante),
+        corrupta: DENDRO.prng.crear(hoy, "corrupcion", ev.instante, ev.texto)() < intensidad * 0.35,
+      }));
   }
 
   // ── Ejes temporales para las vistas ───────────────────────────────────────
-  function calendario() {
-    const c = cfg().cronologia, lista = [];
-    for (let f = c.inicioAlerta, d = 0; f <= c.colapsoTotal; f = DENDRO.reloj.sumarDias(f, 1), d++) lista.push({ dia: d, fecha: f });
-    return lista;
-  }
-
-  function serieRamas(hoy) {
-    const c = cfg().cronologia, lista = [];
-    for (let f = c.primeraColision; f <= c.colapsoTotal; f = DENDRO.reloj.sumarDias(f, 1)) {
-      lista.push({ fecha: f, valor: ramasAfectadas(f, progresoDe(f).p), futuro: f > hoy });
+  function serieRamas(t) {
+    const { t1, tf } = hitos(), lista = [];
+    for (let ms = t1; ms < tf; ms += PASO_SERIE_RAMAS) {
+      lista.push({ tau: DENDRO.tau.de(ms), instante: ms, valor: ramasAfectadas(ms, progresoDe(ms).p), futuro: ms > t });
     }
+    lista.push({ tau: DENDRO.tau.de(tf), instante: tf, valor: ramasAfectadas(tf, 1), futuro: tf > t });
     return lista;
   }
 
-  // ── Estado del día ────────────────────────────────────────────────────────
-  function calcularEstado(fecha) {
-    const c = cfg().cronologia;
-    const { p, fase, intensidad } = progresoDe(fecha);
+  function mensajes(t) {
+    return (datos().mensajes || [])
+      .map((m) => ({ ...m, instante: aMs(m.instante) }))
+      .filter((m) => m.instante <= t)
+      .map((m) => ({ ...m, tau: DENDRO.tau.de(m.instante) }));
+  }
+
+  // ── Estado de un instante ─────────────────────────────────────────────────
+  function calcularEstado(instante) {
+    const t = alMinuto(aMs(instante));
+    const { t0, tf } = hitos();
+    const { p, fase, rectaFinal, intensidad } = progresoDe(t);
     const colapso = fase === 5;
     const tierrasDatos = datos().tierras || [];
-    const parejasDatos = datos().colisiones || [];
     const tierrasPorId = {};
-    for (const t of tierrasDatos) tierrasPorId[t.id] = t;
+    for (const x of tierrasDatos) tierrasPorId[x.id] = x;
 
-    const parejas = parejasDatos.map((par) => calcularPareja(par, fecha, tierrasPorId, colapso));
-    const ataques = colapso ? [] : parejasDatos.flatMap((par) => ataquesDe(par, dias(par.contacto, fecha)));
-    const registro = construirRegistro(fecha, parejasDatos, tierrasPorId, intensidad);
+    const base = parejasBase();
+    const parejas = base.map((par) => calcularPareja(par, t, tierrasPorId, colapso));
+    const ataques = colapso ? [] : base.flatMap((par) => ataquesDe(par, t));
+    const registro = construirRegistro(t, base, tierrasPorId, intensidad);
 
-    const tierras = tierrasDatos.map((t) => {
-      const par = parejas.find((x) => x.a === t.id || x.b === t.id);
-      const estado = par ? estadoTierra(t.id, par) : colapso ? "COLAPSO" : "ESTABLE";
+    const tierras = tierrasDatos.map((x) => {
+      const par = parejas.find((y) => y.a === x.id || y.b === x.id);
+      const estado = par ? estadoTierra(x.id, par) : colapso ? "COLAPSO" : "ESTABLE";
       return {
-        ...t,
+        ...x,
         pareja: par ? par.id : null,
         estado,
-        estabilidad: par ? estabilidad(estado, par) : colapso ? 0 : 100,
-        fusionadaCon: estado === "FUSIONADA" ? (par.a === t.id ? par.b : par.a) : null,
-        eventos: registro.filter((ev) => ev.origen !== "ruido" && ev.tierras.includes(t.id)).reverse(),
+        estabilidad: par ? estabilidad(estado, par, t) : colapso ? 0 : 100,
+        fusionadaCon: estado === "FUSIONADA" ? (par.a === x.id ? par.b : par.a) : null,
+        eventos: registro.filter((ev) => ev.origen !== "ruido" && ev.tierras.includes(x.id)).reverse(),
       };
     });
 
@@ -265,22 +316,20 @@
     if (p >= UMBRAL_CONTENCION) modulosCaidos.push("contencion");
 
     return {
-      fecha, fase, nombreFase: FASES[fase].nombre, nivelAlerta: FASES[fase].alerta, p, intensidad,
-      ramasAfectadas: ramasAfectadas(fecha, p),
-      diasParaColapso: Math.max(0, dias(fecha, c.colapsoTotal)),
-      diaHoy: dias(c.inicioAlerta, fecha),
-      diasTotales: dias(c.inicioAlerta, c.colapsoTotal),
-      calendario: calendario(),
-      serieRamas: serieRamas(fecha),
+      instante: t, tau: DENDRO.tau.de(t), dia: DENDRO.reloj.diaLocal(t),
+      fase, nombreFase: FASES[fase].nombre, nivelAlerta: FASES[fase].alerta, rectaFinal, p, intensidad,
+      ramasAfectadas: ramasAfectadas(t, p),
+      paraColapso: Math.max(0, tf - t),
+      ejes: { desde: t0, hasta: tf, tauDesde: DENDRO.tau.de(t0), tauHasta: DENDRO.tau.de(tf), serieRamas: serieRamas(t) },
       tierras, parejas,
       parejaPrincipal: parejas.length ? parejaPrincipal(parejas) : null,
       ataques, registro,
       armas: datos().armas || {},
       archivo: datos().archivo || [],
-      mensajesDisponibles: (datos().mensajes || []).filter((m) => m.fecha <= fecha),
+      mensajesDisponibles: mensajes(t),
       modulosCaidos,
     };
   }
 
-  DENDRO.cronologia = { calcularEstado };
+  DENDRO.cronologia = { calcularEstado, hitos };
 })(window.DENDRO = window.DENDRO || {});

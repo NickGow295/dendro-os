@@ -5,8 +5,8 @@
   const cfg = () => window.DENDRO_CONFIG;
   const $ = (id) => document.getElementById(id);
 
-  const fecha = DENDRO.reloj.fechaHoy();
-  const estadoDia = DENDRO.cronologia.calcularEstado(fecha);
+  // El Estado del minuto actual; se recalcula al cambiar el minuto (RF-01, estado vivo).
+  let estado = DENDRO.cronologia.calcularEstado(DENDRO.reloj.instanteActual());
   const movimientoReducido = cfg().efectos.respetarMovimientoReducido &&
     !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const parametro = (n) => (cfg().debug.permitirParametrosURL ? DENDRO.reloj.parametroURL(n) : null);
@@ -26,7 +26,7 @@
   }
 
   function irArranque() {
-    mostrar(DENDRO.arranque.crear({ fecha, estado: estadoDia, alTerminar: irAcceso }));
+    mostrar(DENDRO.arranque.crear({ estado, alTerminar: irAcceso }));
   }
 
   function irAcceso() {
@@ -34,7 +34,15 @@
   }
 
   function irEscritorio() {
-    mostrar(DENDRO.escritorio.crear({ estado: estadoDia, salir: () => DENDRO.monitor.apagar() }));
+    mostrar(DENDRO.escritorio.crear({ estado, salir: () => DENDRO.monitor.apagar() }));
+  }
+
+  function alCambiarMinuto(instante) {
+    estado = DENDRO.cronologia.calcularEstado(instante);
+    DENDRO.crt.fijarIntensidad(estado.intensidad);
+    DENDRO.sonido.fijarIntensidad(estado.intensidad);
+    if (panelDebug) panelDebug.textContent = textoDebug();
+    if (actual && actual.actualizar && DENDRO.monitor.estado() === "encendido") actual.actualizar(estado);
   }
 
   // ── Medidor de rendimiento y calidad adaptativa ───────────────────────────
@@ -163,26 +171,33 @@
     tubo.style.filter = `brightness(${t.calor + t.haz})`;
   }
 
-  // Panel de depuración (RF-10): resumen del Estado del día; el Estado completo va a la consola.
-  function mostrarPanelDebug() {
-    const e = estadoDia;
-    const panel = document.createElement("pre");
-    panel.className = "panel-debug";
-    panel.textContent = [
-      `${e.fecha} · FASE ${e.fase} ${e.nombreFase} · ALERTA ${e.nivelAlerta}`,
-      `p=${e.p.toFixed(3)}  intensidad=${e.intensidad.toFixed(2)}  ramas=${e.ramasAfectadas}  días al colapso=${e.diasParaColapso}`,
+  // Panel de depuración (RF-10): resumen del Estado, con la fecha real (fuera del tubo); el
+  // Estado completo va a la consola.
+  let panelDebug = null;
+  function textoDebug() {
+    const e = estado, f = DENDRO.reloj.partesEn(e.instante);
+    return [
+      `${f.year}-${f.month}-${f.day} ${f.hour}:${f.minute} · ${DENDRO.tau.instante(e.instante)} · FASE ${e.fase} ${e.nombreFase}${e.rectaFinal ? " (RECTA FINAL)" : ""} · ALERTA ${e.nivelAlerta}`,
+      `p=${e.p.toFixed(4)}  intensidad=${e.intensidad.toFixed(2)}  ramas=${e.ramasAfectadas}  al colapso=${DENDRO.tau.cuenta(e.paraColapso)}`,
       `principal=${e.parejaPrincipal}  ataques=${e.ataques.length}  registro=${e.registro.length}  caídos=[${e.modulosCaidos.join(", ")}]`,
-      ...e.parejas.map((p) => `${p.id} ${p.estado.padEnd(13)} Δω=${p.deltaOmega.toFixed(4)} sep=${p.separacion.toFixed(2)} T=${-p.diasParaContacto}${p.hostil ? " HOSTIL" : ""}`),
+      ...e.parejas.map((p) => `${p.id} ${p.estado.padEnd(13)} Δω=${p.deltaOmega.toFixed(4)} sep=${p.separacion.toFixed(2)} ${DENDRO.tau.cuenta(p.paraContacto)}${p.hostil ? " HOSTIL" : ""}`),
     ].join("\n");
-    document.body.appendChild(panel);
-    console.info("DENDRO-OS · Estado del día", e);
+  }
+
+  function mostrarPanelDebug() {
+    panelDebug = document.createElement("pre");
+    panelDebug.className = "panel-debug";
+    panelDebug.textContent = textoDebug();
+    document.body.appendChild(panelDebug);
+    console.info("DENDRO-OS · Estado", estado);
   }
 
   function iniciar() {
     DENDRO.tema.aplicar();
     rotular();
-    DENDRO.crt.fijarIntensidad(estadoDia.intensidad);
-    DENDRO.sonido.fijarIntensidad(estadoDia.intensidad);
+    DENDRO.crt.fijarIntensidad(estado.intensidad);
+    DENDRO.sonido.fijarIntensidad(estado.intensidad);
+    DENDRO.reloj.alCambiarMinuto(alCambiarMinuto);
     DENDRO.teclado.iniciar($("entrada"));
     if (cfg().debug.mostrarPanelDebug || parametro("debug") === "1") mostrarPanelDebug();
     if (movimientoReducido) document.documentElement.classList.add("movimiento-reducido");

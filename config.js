@@ -38,12 +38,32 @@ window.DENDRO_CONFIG = {
     rotulo: "#8C8473",       // serigrafía del marco
   },
 
+  // Instantes locales en zonaHoraria ("AAAA-MM-DDThh:mm"). El motor trabaja al minuto.
   cronologia: {
     zonaHoraria: "America/Bogota",
-    inicioAlerta: "2026-10-20",
-    primeraColision: "2026-10-27",
-    colapsoTotal: "2026-12-16",
+    inicioAlerta: "2026-10-20T00:00",
+    primeraColision: "2026-10-27T03:17",
+    inicioRectaFinal: "2026-12-16T00:00",
+    colapsoTotal: "2026-12-16T14:00",
     ramasAfectadasFinal: 1048576, // contador estadístico al llegar al colapso
+    refrescoSegundos: 60,         // recálculo del Estado con la página abierta
+  },
+
+  // Meta-tiempo τ: lo único que la interfaz muestra como tiempo.
+  tau: {
+    epoca: "2006-03-14T00:00",    // τ 0.000, en zonaHoraria
+    segundosPorCiclo: 86400,
+    pulsosPorCiclo: 1000,
+    latidosPorPulso: 100,
+  },
+
+  multiverso: {
+    ventanas: {                   // en ciclos; se comprimen cerca del colapso
+      aproximacionMax: 7, factorAproximacion: 3,
+      tramoMax: 4, factorTramo: 0.5,   // contacto + hostilidades / interferencia
+      contactoMax: 1,                  // duración máxima del estado CONTACTO
+      inicioAtaque: 2 / 7,             // fracción final de la aproximación en que el agresor dispara
+    },
   },
 
   // Rejilla de caracteres del tubo (prototipo opción B).
@@ -133,8 +153,8 @@ window.DENDRO_CONFIG = {
   },
 
   debug: {
-    permitirFechaURL: true,
-    permitirParametrosURL: true, // ?webgl=0 y ?fps=1 para revisar en móvil sin editar este archivo
+    permitirFechaURL: true,      // ?fecha=AAAA-MM-DD[Thh:mm]; el reloj sigue corriendo salvo con &congelar=1
+    permitirParametrosURL: true, // ?webgl=0, ?fps=1 y ?debug=1 para revisar en móvil sin editar este archivo
     mostrarPanelDebug: false,
     mostrarFPS: false,
   },

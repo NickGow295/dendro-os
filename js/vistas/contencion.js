@@ -16,13 +16,14 @@
   const MENSAJE_SUSPENSION = "M-007";
 
   function crear(ctx) {
-    const { estado, ui } = ctx;
+    const { ui } = ctx;
+    let estado = ctx.estado;
     const ids = estado.tierras.map((t) => t.id);
     if (!ui.tierraSeleccionada) ui.tierraSeleccionada = C.pareja(estado, estado.parejaPrincipal).a;
     let elegida = 0, paso = "elegir", inicio = 0, duracion = 0, resultado = null, temporizador = 0;
     let panel = null, escena = null, historial = null;
     const tierra = () => C.tierra(estado, ui.tierraSeleccionada);
-    const suspendidas = estado.mensajesDisponibles.some((m) => m.id === MENSAJE_SUSPENSION);
+    const suspendidas = () => estado.mensajesDisponibles.some((m) => m.id === MENSAJE_SUSPENSION);
 
     // Resultado de una acción: siempre local, siempre sin efecto medible sobre la convergencia.
     function concluir(accion, t) {
@@ -73,7 +74,7 @@
       y++;
       C.partir(ACCIONES[elegida].descripcion, panel.ancho - 2).forEach((l) => panel.escribir(1, y++, l, "textoTenue"));
       y++;
-      if (suspendidas) panel.escribir(1, y++, "AVISO: CONTENCIONES SUSPENDIDAS (M-007)", "arma");
+      if (suspendidas()) panel.escribir(1, y++, "AVISO: CONTENCIONES SUSPENDIDAS (M-007)", "arma");
 
       const fila = panel.alto - 3;
       if (paso === "elegir") panel.escribir(1, fila, ancho ? "↑↓ ACCIÓN · ←→ OBJETIVO · ENTER EJECUTAR" : "TOQUE UNA ACCIÓN", "textoTenue");
@@ -87,7 +88,7 @@
       const locales = DENDRO.local.entradas().filter((e) => e.tipo === "CONTENCIÓN");
       if (!locales.length) historial.escribir(1, 0, "SIN ACCIONES EN ESTE PUESTO", "textoTenue");
       locales.slice(0, historial.alto).forEach((e, i) => {
-        historial.escribir(1, i, `${e.fecha.slice(5)} ${e.hora.slice(0, 5)} ${e.texto}`.slice(0, historial.ancho - 2), "texto");
+        historial.escribir(1, i, `${DENDRO.tau.corto(e.instante)} ${e.texto}`.slice(0, historial.ancho - 2), "texto");
       });
     }
 
@@ -135,6 +136,7 @@
       animada: true,
       dibujar,
       vectores,
+      actualizar(nuevo) { estado = nuevo; },
       tecla(ev) {
         const k = ev.key.toLowerCase();
         if (paso === "confirmar" && (k === "s" || k === "enter")) { ev.preventDefault(); ejecutar(); return; }

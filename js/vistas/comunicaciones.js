@@ -1,4 +1,4 @@
-// V7 COMUNICACIONES (02-diseno.md §6): bandeja de mensajes que se desbloquean por fecha.
+// V7 COMUNICACIONES (02-diseno.md §6): bandeja de mensajes que llegan según el instante.
 // Los no leídos parpadean; los leídos se recuerdan en el navegador (DENDRO.local).
 (function (DENDRO) {
   "use strict";
@@ -7,8 +7,9 @@
   const BARRAS_SENAL = 5;
 
   function crear(ctx) {
-    const { estado } = ctx;
-    const mensajes = [...estado.mensajesDisponibles].sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    let estado = ctx.estado;
+    const ordenar = () => [...estado.mensajesDisponibles].sort((a, b) => b.instante - a.instante);
+    let mensajes = ordenar();
     const primeroSinLeer = mensajes.findIndex((m) => !DENDRO.local.leido(m.id));
     let elegido = primeroSinLeer >= 0 ? primeroSinLeer : 0, primera = 0, desplazado = 0;
     let bandeja = null, lector = null, lineasCuerpo = [];
@@ -42,15 +43,15 @@
         const leido = DENDRO.local.leido(m.id) && !sel;
         bandeja.escribir(0, fila, leido || sel ? " " : "●", "ambar", leido || sel ? estilo : { parpadeo: true });
         const de = m.de.replace(/\s*\(.*\)$/, "").replace(/^AGENTE |^DIRECTORA AMARANTA /, "");
-        const texto = `${m.fecha.slice(5)} ${de} · ${m.asunto.toLocaleUpperCase("es")}`;
+        const texto = `${DENDRO.tau.corto(m.instante)} ${de} · ${m.asunto.toLocaleUpperCase("es")}`;
         bandeja.escribir(2, fila, texto.slice(0, bandeja.ancho - 3), sel ? "ambar" : leido ? "textoTenue" : "texto", estilo);
       }
 
       if (!actual) return;
       lector.escribir(1, 0, "DE", "textoTenue");
       lector.escribir(9, 0, actual.de, "ambar");
-      lector.escribir(1, 1, "FECHA", "textoTenue");
-      lector.escribir(9, 1, actual.fecha, "texto");
+      lector.escribir(1, 1, "EMITIDO", "textoTenue");
+      lector.escribir(9, 1, DENDRO.tau.instante(actual.instante), "texto");
       lector.escribir(1, 2, "ASUNTO", "textoTenue");
       lector.escribir(9, 2, actual.asunto.toLocaleUpperCase("es"), "texto");
       lector.rellenar(1, 3, lector.ancho - 2, 1, "─", "ambarTenue");
@@ -66,7 +67,7 @@
       if (!lector) return;
       const v = lector.vectores();
       const fuerza = Math.max(1, BARRAS_SENAL - Math.round(estado.intensidad * 4));
-      const temblor = DENDRO.prng.crear(estado.fecha, "senal", Math.floor(ahora / 400))() < estado.intensidad * 0.5 ? 1 : 0;
+      const temblor = DENDRO.prng.crear(estado.dia, "senal", Math.floor(ahora / 400))() < estado.intensidad * 0.5 ? 1 : 0;
       const x0 = v.ancho - 9;
       v.texto(x0 - 0.5, 0.1, "SEÑAL", "textoTenue", { tam: 0.8, alinear: "right" });
       for (let i = 0; i < BARRAS_SENAL; i++) {
@@ -87,6 +88,12 @@
       animada: true,
       dibujar,
       vectores,
+      actualizar(nuevo) {
+        const abierto = mensajes[elegido];
+        estado = nuevo;
+        mensajes = ordenar();
+        if (abierto) elegido = Math.max(0, mensajes.findIndex((m) => m.id === abierto.id));
+      },
       tecla(ev) {
         if ((ev.key === "ArrowUp" || ev.key === "ArrowDown") && ev.shiftKey) {
           ev.preventDefault();

@@ -79,6 +79,7 @@
       animada: false,
       dibujar,
       vectores,
+      actualizar() { /* los documentos no cambian con el minuto; se conserva la lectura */ },
       tecla(ev) {
         if ((ev.key === "ArrowUp" || ev.key === "ArrowDown") && ev.shiftKey) { ev.preventDefault(); desplazar(ev.key === "ArrowDown" ? 1 : -1); }
         else if (ev.key === "ArrowUp") { ev.preventDefault(); elegir(-1); }

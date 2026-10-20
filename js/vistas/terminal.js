@@ -61,11 +61,11 @@
       ejecutar: (args, e) => {
         const revelado = e.fase >= 4;
         return [
-          L(T("FECHA       ", "textoTenue"), T(e.fecha)),
+          L(T("META-TIEMPO ", "textoTenue"), T(DENDRO.tau.instante(DENDRO.reloj.ahora()))),
           L(T("FASE        ", "textoTenue"), T(`${e.fase} ${e.nombreFase}`, "ambar")),
           L(T("ALERTA      ", "textoTenue"), T(e.nivelAlerta, e.fase >= 3 ? "arma" : "ambar")),
           L(T("RAMAS       ", "textoTenue"), T(DENDRO.escritorio.formatoRamas(e.ramasAfectadas), e.fase >= 3 ? "arma" : "texto")),
-          L(T("AL COLAPSO  ", "textoTenue"), revelado ? T(`${e.diasParaColapso} DÍAS`, "arma") : T("???", "arma")),
+          L(T("AL COLAPSO  ", "textoTenue"), revelado ? T(DENDRO.tau.cuenta(e.paraColapso), "arma") : T("???", "arma")),
           L(T("PRINCIPAL   ", "textoTenue"), T(`${e.parejaPrincipal} · ${C.pareja(e, e.parejaPrincipal).estado}`, "ambar")),
         ];
       },
@@ -107,12 +107,11 @@
         return [
           L(T("PAR   RAMAS                        ESTADO         Δω      T", "textoTenue")),
           ...e.parejas.map((p) => {
+            const t = p.estado === "ESTABLE" ? "—" : DENDRO.tau.cuenta(p.paraContacto);
             if (sesion.estrecha) {
-              const t = p.estado === "ESTABLE" ? "—" : p.diasParaContacto > 0 ? `−${p.diasParaContacto}` : `+${-p.diasParaContacto}`;
               return L(T(`${p.id} `, "ambar"), T(C.ABREVIATURA[p.estado].padEnd(5), COLOR_ESTADO[p.estado]), T(`Δω ${p.deltaOmega.toFixed(4)} `, "tierra"), T(t, "textoTenue"));
             }
             const nombres = `${MAYUS(C.tierra(e, p.a).nombre)}/${MAYUS(C.tierra(e, p.b).nombre)}`;
-            const t = p.estado === "ESTABLE" ? "—" : p.diasParaContacto > 0 ? `−${p.diasParaContacto}` : `+${-p.diasParaContacto}`;
             return L(T(`${p.id}  `, "ambar"), T(nombres.padEnd(28).slice(0, 28) + " ", "texto"), T(p.estado.padEnd(15), COLOR_ESTADO[p.estado]),
               T(`${p.deltaOmega.toFixed(4)}  `, "tierra"), T(t, "textoTenue"));
           }),
@@ -134,8 +133,8 @@
       nombre: "registro", alias: ["log"], uso: "[n]", ayuda: "últimas entradas de la bitácora",
       ejecutar: (args, e) => {
         const n = Math.max(1, Math.min(50, parseInt(args[0], 10) || 10));
-        const todas = [...e.registro, ...DENDRO.local.entradas()].sort((a, b) => (a.fecha + a.hora < b.fecha + b.hora ? 1 : -1));
-        return todas.slice(0, n).map((ev) => L(T(`${ev.fecha.slice(5)} ${ev.hora.slice(0, 5)} `, "textoTenue"),
+        const todas = [...e.registro, ...DENDRO.local.entradas()].sort((a, b) => b.instante - a.instante);
+        return todas.slice(0, n).map((ev) => L(T(`${DENDRO.tau.corto(ev.instante)} `, "textoTenue"),
           T(`[${ev.tipo}] `, C.COLOR_TIPO[ev.tipo]), T(ev.texto, ev.origen === "local" ? "ambar" : "texto")));
       },
     },
@@ -215,7 +214,7 @@
   }
 
   function crear(ctx) {
-    const { estado } = ctx;
+    let estado = ctx.estado;
     const P = DENDRO.pantalla;
     let area = null;
     const consola = DENDRO.escritor.crearConsola(() => area);
@@ -274,7 +273,7 @@
       posHistorial = -1;
       sesion.pendiente = null;
       const { orden, args } = analizar(linea);
-      const rng = DENDRO.prng.crear(estado.fecha, "terminal", ++cuenta);
+      const rng = DENDRO.prng.crear(estado.dia, "terminal", ++cuenta);
       const lat = cfg().texto.latenciaTerminal;
       const espera = (lat.minMs + (lat.maxMs - lat.minMs) * estado.intensidad) * (0.7 + 0.6 * rng());
 
@@ -337,6 +336,7 @@
         nuevoPrompt();
       },
       dibujar,
+      actualizar(nuevo) { estado = nuevo; },
       tecla(ev) {
         if (ocupada) {
           ev.preventDefault();

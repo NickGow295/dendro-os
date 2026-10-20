@@ -1,6 +1,6 @@
 // V1 COLISIÓN (02-diseno.md §6): la pareja seleccionada como dos globos que se acercan,
 // con la regla de Δω, los ataques en rojo, el desenlace y los paneles de lectura.
-// Lee solo del Estado del día y del estado de interfaz; no calcula fechas.
+// Lee solo del Estado y del estado de interfaz; los tiempos se muestran en τ.
 (function (DENDRO) {
   "use strict";
 
@@ -26,9 +26,7 @@
 
     function textoContacto(par) {
       if (par.estado === "ESTABLE") return "SIN CONVERGENCIA";
-      if (par.diasParaContacto > 0) return `T−${par.diasParaContacto} DÍAS`;
-      if (par.diasParaContacto === 0) return "HOY";
-      return `T+${-par.diasParaContacto} DÍAS`;
+      return DENDRO.tau.cuenta(par.paraContacto);
     }
 
     function dibujarSelector(reg, par, ancho) {
@@ -47,7 +45,7 @@
         ["Δω ACTUAL", par.deltaOmega.toFixed(4), "texto"],
         ["Δω₀", par.deltaOmega0.toFixed(4), "textoTenue"],
         ["SEPARACIÓN", `${Math.round(par.separacion * 100)} %`, "texto"],
-        ["CONTACTO", textoContacto(par), par.diasParaContacto > 0 && par.estado !== "ESTABLE" ? "ambar" : "texto"],
+        ["CONTACTO", textoContacto(par), par.paraContacto > 0 && par.estado !== "ESTABLE" ? "ambar" : "texto"],
         ["ESTADO", par.estado, COLOR_ESTADO[par.estado]],
       ];
       filas.forEach(([etiqueta, valor, color], i) => {
@@ -92,8 +90,8 @@
           g.escribir(0, 0, "Δω₀", "textoTenue");
           g.escribir(0, g.alto - 2, "0", "textoTenue");
           const serie = par.serieDeltaOmega;
-          g.escribir(4, g.alto - 1, serie[0].fecha.slice(5), "textoTenue");
-          g.derecha(g.alto - 1, serie[serie.length - 1].fecha.slice(5), "textoTenue");
+          g.escribir(4, g.alto - 1, DENDRO.tau.corto(serie[0].instante), "textoTenue");
+          g.derecha(g.alto - 1, DENDRO.tau.corto(serie[serie.length - 1].instante), "textoTenue");
         }
       } else {
         const altoPanel = 8;

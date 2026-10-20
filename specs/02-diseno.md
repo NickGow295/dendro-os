@@ -149,7 +149,7 @@ window.DENDRO_CONFIG = {
     },
     ventanas: {                            // en ciclos; se comprimen cerca del colapso (§4.5)
       aproximacionMax: 7, factorAproximacion: 3,
-      tramoMax: 3, factorTramo: 0.5,       // hostilidades / interferencia
+      tramoMax: 4, factorTramo: 0.5,       // contacto + hostilidades / interferencia
       contactoMax: 1,                      // duración máxima del estado CONTACTO
       inicioAtaque: 2 / 7,                 // fracción final de la aproximación en que el agresor dispara
     },
@@ -266,7 +266,7 @@ window.DENDRO_CONFIG = {
 ```
 
 - `tau.de(ms)` → número. `tau.instante(ms)` → `"τ 7532.137"`. `tau.reloj(ms)` → `"τ 7532.137·42"` (con latidos, para la barra).
-- `tau.duracion(ms)` → `"3.208 c"` (≥ 1 ciclo), `"412 p"` (< 1 ciclo), `"37 l"` (< 1 pulso). `tau.cuenta(ms)` → `"T−3.208 c"` / `"T+412 p"` (ms con signo: negativo = falta).
+- `tau.duracion(ms)` → `"3.208 c"` (≥ 1 ciclo), `"412 p"` (< 1 ciclo), `"37 l"` (< 1 pulso). `tau.cuenta(restante)` → `"T−3.208 c"` si `restante > 0` (falta) y `"T+412 p"` si ya pasó; `restante` es, p. ej., `pareja.paraContacto`.
 - `tau.corto(ms)` → `"7532.137"` (registro).
 - Es la **única** vía por la que un instante llega a la pantalla. El panel de depuración puede mostrar además la fecha real.
 
@@ -341,10 +341,10 @@ Usos de la intensidad: corrupción de líneas de registro, glitches, fallos de �
 ```
 A = min(aproximacionMax, factorAproximacion · r)     # aproximación
 H = min(tramoMax, factorTramo · r)                   # contacto + hostilidades/interferencia
-K = min(contactoMax, H / 3)                          # parte de H con estado CONTACTO
+K = min(contactoMax, H / 4)                          # parte de H con estado CONTACTO
 ```
 
-Para C-01 (r ≈ 50 c) son 7 c, 3 c y 1 c: igual que antes en días. Para C-12 (r ≈ 1.58 c), A ≈ 4.75 c (empieza el 10/12, como dice el registro) y H ≈ 0.79 c.
+Para C-01 (r ≈ 50 c) son 7 c, 4 c y 1 c: igual que antes en días (un día de contacto, tres de hostilidades, desenlace al cuarto). Para C-12 (r ≈ 1.58 c), A ≈ 4.75 c (empieza el 10/12, como dice el registro) y H ≈ 0.79 c.
 
 **Estado de una pareja** según `dt = t − contacto`:
 
@@ -398,6 +398,7 @@ El registro de un instante = eventos fijos de `data/eventos.js` con instante ≤
 ```js
 Estado = {
   instante, tau,                                 // ms truncado al minuto y su τ en ciclos
+  dia,                                           // "AAAA-MM-DD" local: solo semilla de PRNG por día, nunca se muestra
   fase, nombreFase, nivelAlerta, rectaFinal, p, intensidad,
   ramasAfectadas, ramasCatalogadas,              // contador estadístico / total del catálogo
   enColision,                                    // ramas catalogadas en contacto o después
@@ -411,7 +412,7 @@ Estado = {
   parejaPrincipal: "C-03",
   ataques: [{ pareja, desde, hacia, tipo, progreso }],
   armas: { [tipo]: { nombre, descripcion } },
-  registro: [{ instante, tipo, texto, tierras, origen, corrupta }],
+  registro: [{ instante, tau, tipo, texto, tierras, origen, corrupta }],
   mensajes: [...], archivo: [...], protocolos: [...],
   hitos: { omegaI, sarmiento, vislumbres, silueta, … },
   silueta: { visible, opacidad },                // RF-17, lore §3.1
@@ -474,7 +475,8 @@ DENDRO.vistas.registrar({
       dibujar(region),            // texto y marcos en la rejilla; al abrir, al redimensionar y cuando la vista lo pide
       vectores(v, ahora),         // diagramas en la capa vectorial; cada fotograma si animada, si no, solo al marcarse sucia
       animada: true,
-      actualizar(estado),         // opcional: nuevo minuto. Si no existe, el escritorio redibuja la vista
+      actualizar(estado),         // opcional: nuevo minuto. Si no existe, el escritorio vuelve a crear la vista
+                                  // con el nuevo Estado (el estado de interfaz compartido se conserva)
       tecla(ev), toque(punto), movimiento(punto),  // punto = { x, y } en celdas (decimales), relativo a la región de la vista
       gesto(g),                   // opcional: { tipo: "rueda" | "arrastre" | "pellizco", punto, dx, dy, factor }
       capturaTeclado: false,      // true: las cifras llegan a la vista en vez de cambiar de pestaña (TERMINAL, filtros)
@@ -484,7 +486,7 @@ DENDRO.vistas.registrar({
 });
 ```
 
-Las vistas leen **solo** de `ctx.estado`, del estado de interfaz y de las funciones puras del motor (`serieFirmas`, `multiverso.disposicion`, `tau.*`). Nunca guardan el `Estado` de la creación: lo piden a `ctx` en cada dibujo. Nunca muestran fechas ni tocan el canvas.
+Las vistas leen **solo** del `Estado` que reciben (al crearse o en `actualizar`), del estado de interfaz y de las funciones puras del motor (`serieFirmas`, `multiverso.disposicion`, `tau.*`). Las que tienen estado local que no debe perderse cada minuto (TERMINAL, COMUNICACIONES, ARCHIVO, CONTENCIÓN, REGISTRO, EXPEDIENTE) implementan `actualizar`. Nunca muestran fechas ni tocan el canvas.
 
 **Gestos** (`main.js`): un puntero que se mueve más de media celda con el botón pulsado es `arrastre` (y deja de ser toque); dos punteros táctiles son `pellizco`; la rueda es `rueda`. Solo los reciben las vistas que implementan `gesto`.
 

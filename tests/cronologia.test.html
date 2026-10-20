@@ -25,7 +25,10 @@
   <script src="../data/colisiones.js"></script>
   <script src="../data/eventos.js"></script>
   <script src="../js/nucleo/prng.js"></script>
+  <script src="../data/mensajes.js"></script>
+  <script src="../data/archivo.js"></script>
   <script src="../js/nucleo/reloj.js"></script>
+  <script src="../js/nucleo/tau.js"></script>
   <script src="../js/nucleo/tema.js"></script>
   <script src="../js/nucleo/cronologia.js"></script>
   <script>
@@ -33,8 +36,12 @@
       "use strict";
       DENDRO.tema.aplicar();
       const cr = DENDRO_CONFIG.cronologia;
-      const en = (f) => DENDRO.cronologia.calcularEstado(f);
+      const HORA = 3600000;
+      const ms = (x) => DENDRO.reloj.aInstante(x);
+      const en = (x) => DENDRO.cronologia.calcularEstado(x);
       const par = (e, id) => e.parejas.find((p) => p.id === id);
+      const tierra = (e, id) => e.tierras.find((t) => t.id === id);
+      const enColision = (e) => e.tierras.filter((t) => !["ESTABLE", "APROXIMACIÓN"].includes(t.estado)).length;
       const resultados = [];
       const comprobar = (nombre, fn) => {
         let ok = false, detalle = "";
@@ -43,77 +50,109 @@
       };
 
       // Criterios de 01-requisitos.md §5
-      comprobar("10-19: fase 0 NOMINAL, 0 ramas", () => en("2026-10-19").fase === 0 && en("2026-10-19").ramasAfectadas === 0);
-      comprobar("10-20: fase 1, alerta ÁMBAR, 0 ramas", () => { const e = en("2026-10-20"); return e.fase === 1 && e.nivelAlerta === "ÁMBAR" && e.ramasAfectadas === 0; });
-      comprobar("10-27: exactamente 2 ramas y C-01 en CONTACTO", () => { const e = en("2026-10-27"); return e.ramasAfectadas === 2 && par(e, "C-01").estado === "CONTACTO"; });
-      comprobar("12-16: fase 5 COLAPSO y ramas = ramasAfectadasFinal", () => { const e = en(cr.colapsoTotal); return e.fase === 5 && e.ramasAfectadas === cr.ramasAfectadasFinal; });
-      comprobar("Al menos 4 parejas hostiles", () => en("2026-10-20").parejas.filter((p) => /hostil/.test(p.postura)).length >= 4);
-      comprobar("Determinismo: el mismo día da el mismo Estado", () => JSON.stringify(en("2026-11-20")) === JSON.stringify(en("2026-11-20")));
+      comprobar("10-19: fase 0 NOMINAL, 0 ramas", () => en("2026-10-19T12:00").fase === 0 && en("2026-10-19T12:00").ramasAfectadas === 0);
+      comprobar("10-20: fase 1, alerta ÁMBAR, 0 ramas", () => { const e = en("2026-10-20T12:00"); return e.fase === 1 && e.nivelAlerta === "ÁMBAR" && e.ramasAfectadas === 0; });
+      comprobar("10-27 03:16: todavía ninguna colisión", () => { const e = en("2026-10-27T03:16"); return e.ramasAfectadas === 0 && enColision(e) === 0; });
+      comprobar("10-27 03:17: exactamente 2 ramas y C-01 en CONTACTO", () => { const e = en(cr.primeraColision); return e.ramasAfectadas === 2 && par(e, "C-01").estado === "CONTACTO"; });
+      comprobar("10-27 12:00: 2 ramas en colisión (Velmora y Ostrakh)", () => enColision(en("2026-10-27T12:00")) === 2);
+      comprobar("12-16 13:59: recta final, fase 4, intensidad máxima", () => { const e = en("2026-12-16T13:59"); return e.fase === 4 && e.rectaFinal && e.intensidad === DENDRO_CONFIG.efectos.glitchMaximo; });
+      comprobar("12-16 14:00: fase 5 COLAPSO y ramas = ramasAfectadasFinal", () => { const e = en(cr.colapsoTotal); return e.fase === 5 && e.ramasAfectadas === cr.ramasAfectadasFinal && e.paraColapso === 0; });
+      comprobar("12-25: sigue en COLAPSO", () => en("2026-12-25T12:00").fase === 5);
+      comprobar("Al menos 4 parejas hostiles", () => en(cr.inicioAlerta).parejas.filter((p) => /hostil/.test(p.postura)).length >= 4);
+      comprobar("Determinismo: el mismo minuto da el mismo Estado", () => JSON.stringify(en("2026-11-20T15:42")) === JSON.stringify(en(ms("2026-11-20T15:42") + 30000)));
 
-      comprobar("Monotonía 20/10 → 31/12: ramas y fase nunca retroceden", () => {
+      comprobar("Monotonía hora a hora 20/10 → 17/12: ramas, ramas en colisión y fase", () => {
         let antes = null;
-        for (let f = "2026-10-20"; f <= "2026-12-31"; f = DENDRO.reloj.sumarDias(f, 1)) {
-          const e = en(f);
-          if (antes && (e.ramasAfectadas < antes.ramasAfectadas || e.fase < antes.fase)) return "retrocede el " + f;
+        for (let t = ms(cr.inicioAlerta); t <= ms("2026-12-17T00:00"); t += HORA) {
+          const e = en(t);
+          if (antes && (e.ramasAfectadas < antes.ramasAfectadas || e.fase < antes.fase || enColision(e) < enColision(antes))) return "retrocede en τ " + DENDRO.tau.corto(t);
           antes = e;
         }
         return true;
       });
       comprobar("Crecimiento exponencial: el cociente diario de ramas es casi constante", () => {
-        const a = en("2026-11-10").ramasAfectadas / en("2026-11-09").ramasAfectadas;
-        const b = en("2026-12-10").ramasAfectadas / en("2026-12-09").ramasAfectadas;
+        const a = en("2026-11-10T12:00").ramasAfectadas / en("2026-11-09T12:00").ramasAfectadas;
+        const b = en("2026-12-10T12:00").ramasAfectadas / en("2026-12-09T12:00").ramasAfectadas;
         return Math.abs(a - b) < 0.02 || `cocientes ${a.toFixed(3)} y ${b.toFixed(3)}`;
       });
 
+      // Meta-tiempo τ
+      comprobar("τ: 20/10 00:00 es 7525.000 y el colapso 7582.583", () => DENDRO.tau.corto(ms(cr.inicioAlerta)) === "7525.000" && DENDRO.tau.corto(ms(cr.colapsoTotal)) === "7582.583");
+      comprobar("τ: cuentas atrás en ciclos, pulsos y latidos", () => {
+        const c = DENDRO.tau.ciclo(), p = DENDRO.tau.pulso();
+        const r = [DENDRO.tau.cuenta(3.2089 * c), DENDRO.tau.cuenta(412.5 * p), DENDRO.tau.cuenta(37 * DENDRO.tau.latido()), DENDRO.tau.cuenta(-2 * c)];
+        return JSON.stringify(r) === JSON.stringify(["T−3.208 c", "T−412 p", "T−37 l", "T+2.000 c"]) || r.join(" | ");
+      });
+      comprobar("Reloj: la hora local de Bogotá se convierte bien (UTC−5)", () => ms("2026-12-16T14:00") === Date.UTC(2026, 11, 16, 19, 0));
+
       // Parejas, ataques y desenlaces
-      comprobar("Δω₀ = |ω_a − ω_b| (C-03)", () => { const p = par(en("2026-10-20"), "C-03"); return Math.abs(p.deltaOmega0 - Math.abs(2.7183 - 2.7461)) < 1e-9; });
-      comprobar("Separación de C-03 baja día a día del 11/11 al 18/11 y llega a 0", () => {
+      comprobar("Δω₀ = |ω_a − ω_b| (C-03)", () => { const p = par(en(cr.inicioAlerta), "C-03"); return Math.abs(p.deltaOmega0 - Math.abs(2.7183 - 2.7461)) < 1e-9; });
+      comprobar("Separación de C-03 baja hora a hora durante la aproximación y llega a 0 en el contacto", () => {
+        const contacto = ms("2026-11-18T22:05");
         let antes = 2;
-        for (let f = "2026-11-11"; f <= "2026-11-18"; f = DENDRO.reloj.sumarDias(f, 1)) {
-          const s = par(en(f), "C-03").separacion;
-          if (s >= antes) return "no baja el " + f;
+        for (let t = contacto - 7 * 24 * HORA + HORA; t < contacto; t += HORA) {
+          const s = par(en(t), "C-03").separacion;
+          if (s >= antes) return "no baja en τ " + DENDRO.tau.corto(t);
           antes = s;
         }
-        return antes === 0;
+        return par(en(contacto), "C-03").separacion === 0;
       });
-      comprobar("10-25: Ostrakh ataca a Velmora (antes del contacto)", () => en("2026-10-25").ataques.some((a) => a.desde === "B-0x02" && a.hacia === "B-0x01"));
+      comprobar("10-25: Ostrakh ataca a Velmora (antes del contacto)", () => en("2026-10-25T12:00").ataques.some((a) => a.desde === "B-0x02" && a.hacia === "B-0x01"));
       comprobar("11-20: C-03 en HOSTILIDADES con ataques en ambos sentidos", () => {
-        const e = en("2026-11-20");
+        const e = en("2026-11-20T12:00");
         const at = e.ataques.filter((a) => a.pareja === "C-03");
         return par(e, "C-03").estado === "HOSTILIDADES" && at.some((a) => a.desde === "B-0x05") && at.some((a) => a.desde === "B-0x06");
       });
       comprobar("11-20: C-01 resuelta (Velmora sobrevive) y C-02 fusionada", () => {
-        const e = en("2026-11-20");
-        const velmora = e.tierras.find((t) => t.id === "B-0x01"), ostrakh = e.tierras.find((t) => t.id === "B-0x02");
-        return par(e, "C-01").estado === "SUPERVIVIENTE" && velmora.estado === "SUPERVIVIENTE" && ostrakh.estado === "ANIQUILADA" && par(e, "C-02").estado === "FUSIONADA";
+        const e = en("2026-11-20T12:00");
+        return par(e, "C-01").estado === "SUPERVIVIENTE" && tierra(e, "B-0x01").estado === "SUPERVIVIENTE" &&
+          tierra(e, "B-0x02").estado === "ANIQUILADA" && par(e, "C-02").estado === "FUSIONADA";
       });
+      comprobar("C-12: la aproximación empieza el 10/12, como dice el registro", () =>
+        par(en("2026-12-10T05:00"), "C-12").estado === "ESTABLE" && par(en("2026-12-10T07:00"), "C-12").estado === "APROXIMACIÓN");
       comprobar("Pareja principal en fechas clave", () => {
         const esperadas = { "2026-10-19": "C-01", "2026-10-25": "C-01", "2026-11-20": "C-03", "2026-12-05": "C-06", "2026-12-15": "C-12" };
-        for (const [f, id] of Object.entries(esperadas)) if (en(f).parejaPrincipal !== id) return `${f}: ${en(f).parejaPrincipal} (esperaba ${id})`;
+        for (const [f, id] of Object.entries(esperadas)) if (en(f + "T12:00").parejaPrincipal !== id) return `${f}: ${en(f + "T12:00").parejaPrincipal} (esperaba ${id})`;
         return true;
       });
 
       // Registro
-      comprobar("El registro de ayer sigue igual hoy (historial estable)", () => {
-        const clave = (ev) => ev.fecha + ev.hora + ev.texto;
-        const hoy = new Set(en("2026-11-20").registro.map(clave));
-        return en("2026-11-19").registro.every((ev) => hoy.has(clave(ev))) || "falta alguna entrada de ayer";
+      comprobar("El registro de hace una hora sigue igual ahora (historial estable)", () => {
+        const clave = (ev) => ev.instante + ev.texto;
+        const ahora = new Set(en("2026-11-20T15:00").registro.map(clave));
+        return en("2026-11-20T14:00").registro.every((ev) => ahora.has(clave(ev))) || "falta alguna entrada anterior";
       });
-      comprobar("El registro no muestra eventos futuros", () => en("2026-11-20").registro.every((ev) => ev.fecha <= "2026-11-20"));
-      comprobar("Tierra Gris usa la máscara real", () => en("2026-10-20").tierras.find((t) => t.id === "B-0x09").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
+      comprobar("La corrupción visual solo avanza en el mismo día: una entrada corrupta no vuelve a verse limpia", () => {
+        const a = en("2026-12-05T10:00").registro, b = en("2026-12-05T18:00").registro;
+        const marca = new Map(b.map((ev) => [ev.instante + ev.texto, ev.corrupta]));
+        return a.every((ev) => !ev.corrupta || marca.get(ev.instante + ev.texto)) || "alguna entrada corrupta se limpia";
+      });
+      comprobar("El registro no muestra eventos futuros", () => { const t = ms("2026-11-20T12:00"); return en(t).registro.every((ev) => ev.instante <= t); });
+      comprobar("Tierra Gris usa la máscara real", () => tierra(en(cr.inicioAlerta), "B-0x09").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
 
-      // Ejes temporales para las vistas
-      comprobar("calendario va de inicioAlerta a colapsoTotal, un día por entrada", () => {
-        const e = en("2026-11-20");
-        return e.calendario.length === e.diasTotales + 1 && e.calendario[0].fecha === cr.inicioAlerta && e.calendario[e.calendario.length - 1].fecha === cr.colapsoTotal;
-      });
+      // Ejes para las vistas
       comprobar("serieRamas: de la primera colisión al colapso, creciente, con el futuro marcado", () => {
-        const s = en("2026-11-20").serieRamas;
+        const t = ms("2026-11-20T12:00"), s = en(t).ejes.serieRamas;
         const creciente = s.every((x, i) => i === 0 || x.valor >= s[i - 1].valor);
         const corte = s.findIndex((x) => x.futuro);
-        return s[0].valor === 2 && s[s.length - 1].valor === cr.ramasAfectadasFinal && creciente && s[corte - 1].fecha === "2026-11-20";
+        return s[0].valor === 2 && s[s.length - 1].valor === cr.ramasAfectadasFinal && creciente && s[corte - 1].instante <= t && s[corte].instante > t;
       });
-      comprobar("Cada entrada del registro lleva su día desde inicioAlerta", () => en("2026-11-20").registro.every((ev) => ev.dia === DENDRO.reloj.diasEntre(cr.inicioAlerta, ev.fecha)));
+      comprobar("Ningún texto de pantalla lleva fechas de nuestro calendario", () => {
+        const FECHA = /20\d\d-\d\d|\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
+        for (const x of ["2026-10-27T12:00", "2026-12-15T23:00"]) {
+          const e = en(x);
+          const textos = [...e.registro.map((r) => r.texto), ...e.mensajesDisponibles.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]), ...e.archivo.flatMap((d) => [d.titulo, ...d.texto])];
+          const malo = textos.find((s) => FECHA.test(s));
+          if (malo) return malo;
+        }
+        return true;
+      });
+      comprobar("calcularEstado tarda menos de 20 ms de media", () => {
+        const t0 = performance.now();
+        for (let i = 0; i < 20; i++) en(ms("2026-12-12T12:00") + i * 60000);
+        const medio = (performance.now() - t0) / 20;
+        return medio < 20 || `${medio.toFixed(1)} ms`;
+      });
 
       const fallos = resultados.filter((r) => !r.ok).length;
       const resumen = document.getElementById("resumen");

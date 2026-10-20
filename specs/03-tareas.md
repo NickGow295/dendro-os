@@ -81,15 +81,15 @@
 
 ## Fase 5 — Tiempo por minutos y meta-tiempo τ
 
-> Migración: el motor pasa de fechas `AAAA-MM-DD` a instantes. Hasta terminar esta fase las vistas siguen funcionando con un adaptador (`estado.fecha` derivado del instante) que se elimina en T5.6.
+> Migración: el motor pasa de fechas `AAAA-MM-DD` a instantes. Las vistas se migraron a la vez, así que no hizo falta el adaptador `estado.fecha` previsto.
 
-- [ ] **T5.1** `config.js`: `cronologia` con instantes y `inicioRectaFinal`, `refrescoSegundos`, bloque `tau`; `colapsoTotal: "2026-12-16T14:00"`. *(RF-01, RF-09, RF-14)*
-- [ ] **T5.2** `reloj.js`: `instanteActual`, `aInstante` con la zona de config, `diaLocal`, `?fecha=` con hora que sigue corriendo, `&congelar=1`, `alCambiarMinuto`, `alLlegar`. *(RF-01, RF-10)*
-- [ ] **T5.3** `tau.js`: `de`, `instante`, `reloj`, `corto`, `duracion`, `cuenta` (`02-diseno.md §4.2`). *(RF-14)*
-- [ ] **T5.4** `cronologia.js` por instantes: progreso continuo, fases con recta final, intensidad, ventanas A/H/K, `paraContacto`, `paraColapso`, registro con instantes y filtrado al minuto. Parejas nombradas con hora de contacto (`04-lore.md §5.1`). *(RF-01, RF-06)*
-- [ ] **T5.5** Estado vivo: `main.js` recalcula cada minuto; `ctx.estado` como getter; `actualizar(estado)` en el escritorio y en las vistas con estado propio (TERMINAL, COMUNICACIONES, ARCHIVO, CONTENCIÓN); las demás se redibujan. *(RF-01)*
-- [ ] **T5.6** Sustituir toda fecha u hora visible por τ: barra de estado (con latidos), arranque, registro, expedientes, gráficas, cuentas atrás, terminal, mensajes. Quitar el adaptador `estado.fecha`. *(RF-14)*
-- [ ] **T5.7** Pruebas y skill `verificar-cronologia` con instantes: criterios de §5, monotonía por hora, 13:59 / 14:00, ninguna fecha en el texto de pantalla. *(RF-01, RF-14)*
+- [x] **T5.1** `config.js`: `cronologia` con instantes y `inicioRectaFinal`, `refrescoSegundos`, bloque `tau`; `colapsoTotal: "2026-12-16T14:00"`. *(RF-01, RF-09, RF-14)*
+- [x] **T5.2** `reloj.js`: `instanteActual`, `aInstante` con la zona de config, `diaLocal`, `?fecha=` con hora que sigue corriendo, `&congelar=1`, `alCambiarMinuto`, `alLlegar`. *(RF-01, RF-10)*
+- [x] **T5.3** `tau.js`: `de`, `instante`, `reloj`, `corto`, `duracion`, `cuenta` (`02-diseno.md §4.2`). *(RF-14)*
+- [x] **T5.4** `cronologia.js` por instantes: progreso continuo, fases con recta final, intensidad, ventanas A/H/K, `paraContacto`, `paraColapso`, registro con instantes y filtrado al minuto. Parejas nombradas con hora de contacto (`04-lore.md §5.1`). *(RF-01, RF-06)*
+- [x] **T5.5** Estado vivo: `main.js` recalcula cada minuto; `ctx.estado` como getter; `actualizar(estado)` en el escritorio y en las vistas con estado propio (TERMINAL, COMUNICACIONES, ARCHIVO, CONTENCIÓN); las demás se redibujan. *(RF-01)*
+- [x] **T5.6** Sustituir toda fecha u hora visible por τ: barra de estado (con latidos), arranque, registro, expedientes, gráficas, cuentas atrás, terminal, mensajes. Quitar el adaptador `estado.fecha`. *(RF-14)*
+- [x] **T5.7** Pruebas y skill `verificar-cronologia` con instantes: criterios de §5, monotonía por hora, 13:59 / 14:00, ninguna fecha en el texto de pantalla. *(RF-01, RF-14)*
 
 **Verificación:** `?fecha=2026-10-27T03:16` sin colisiones y `03:17` con Velmora/Ostrakh en contacto; con `?fecha=2026-12-16T13:58` el escritorio pasa solo a fase 5 a las 14:00 (la pantalla de colapso en vivo completa llega en T9.3); en el tubo no aparece ninguna fecha en las fechas clave.
 

@@ -1,5 +1,5 @@
 // V6 REGISTRO (02-diseno.md §6): bitácora del sistema, del más reciente al más antiguo, con filtros
-// por tipo y un histograma de eventos por día. Suma el registro local del operador (accesos y
+// por tipo y un histograma de eventos por ciclo τ. Suma el registro local del operador (accesos y
 // contenciones), que no forma parte de la cronología global.
 (function (DENDRO) {
   "use strict";
@@ -15,10 +15,9 @@
   };
 
   function crear(ctx) {
-    const { estado } = ctx;
-    const diaDe = (fecha) => { const c = estado.calendario.find((k) => k.fecha === fecha); return c ? c.dia : null; };
-    const todas = [...estado.registro, ...DENDRO.local.entradas().map((e) => ({ ...e, dia: diaDe(e.fecha) }))]
-      .sort((a, b) => (a.fecha + a.hora < b.fecha + b.hora ? 1 : -1));
+    let estado = ctx.estado;
+    const reunir = () => [...estado.registro, ...DENDRO.local.entradas()].sort((a, b) => b.instante - a.instante);
+    let todas = reunir();
     let filtro = 0, elegido = 0, primera = 0, visibles = 10, pestanas = [], lista = null, histograma = null;
 
     const filtradas = () => (filtro === 0 ? todas : todas.filter((e) => e.tipo === FILTROS[filtro]));
@@ -40,7 +39,7 @@
 
       histograma = reg.region(0, 1, reg.ancho, ALTO_HISTOGRAMA);
       const y0 = 1 + ALTO_HISTOGRAMA;
-      if (ancho) reg.escribir(1, y0, "FECHA      HORA     TIPO         EVENTO", "textoTenue");
+      if (ancho) reg.escribir(1, y0, "τ         TIPO         EVENTO", "textoTenue");
       lista = reg.region(0, y0 + 1, reg.ancho, reg.alto - y0 - 1 - ALTO_DETALLE);
       visibles = lista.alto;
 
@@ -53,7 +52,7 @@
         const sel = primera + fila === elegido, estilo = sel ? { inverso: true } : null;
         if (sel) lista.rellenar(0, fila, lista.ancho, 1, " ", "ambar", estilo);
         const marca = e.origen === "local" ? "◆" : " ";
-        let cx = lista.escribir(1, fila, ancho ? `${e.fecha} ${e.hora} ` : `${e.fecha.slice(5)} ${e.hora.slice(0, 5)} `, sel ? "ambar" : "textoTenue", estilo);
+        let cx = lista.escribir(1, fila, `${DENDRO.tau.corto(e.instante)} `.padEnd(10), sel ? "ambar" : "textoTenue", estilo);
         cx = lista.escribir(cx, fila, ancho ? `[${e.tipo}]`.padEnd(13) : ABREV[e.tipo] + " ", sel ? "ambar" : COLOR_TIPO[e.tipo], estilo);
         lista.escribir(cx, fila, `${marca}${e.texto}`.slice(0, lista.ancho - cx - 1), sel ? "ambar" : e.origen === "local" ? "ambar" : "texto", estilo);
       }
@@ -68,20 +67,22 @@
       }
     }
 
-    // Eventos por día desde inicioAlerta hasta hoy; lo hostil, encima y en rojo.
+    // Eventos por ciclo τ desde inicioAlerta hasta ahora; lo hostil, encima y en rojo.
     function vectores() {
       if (!histograma) return;
       const v = histograma.vectores();
-      const dias = Math.max(1, Math.min(estado.diaHoy, estado.diasTotales) + 1);
+      const primero = Math.floor(estado.ejes.tauDesde);
+      const dias = Math.max(1, Math.floor(Math.min(estado.tau, estado.ejes.tauHasta)) - primero + 1);
       const conteo = new Array(dias).fill(0), hostiles = new Array(dias).fill(0);
       for (const e of filtradas()) {
-        if (e.dia === null || e.dia === undefined || e.dia < 0 || e.dia >= dias) continue;
-        conteo[e.dia]++;
-        if (e.tipo === "HOSTIL") hostiles[e.dia]++;
+        const d = Math.floor(e.tau) - primero;
+        if (d < 0 || d >= dias) continue;
+        conteo[d]++;
+        if (e.tipo === "HOSTIL") hostiles[d]++;
       }
       const max = Math.max(1, ...conteo), x0 = 7, ancho = v.ancho - x0 - 1, base = v.alto - 0.3;
       v.texto(1, 0.1, "EVENTOS", "textoTenue", { tam: 0.8 });
-      v.texto(1, 1.0, "POR DÍA", "textoTenue", { tam: 0.8 });
+      v.texto(1, 1.0, "POR CICLO", "textoTenue", { tam: 0.8 });
       v.linea(x0, base, x0 + ancho, base, "ambarTenue");
       const paso = ancho / dias;
       for (let d = 0; d < dias; d++) {
@@ -108,6 +109,15 @@
       animada: false,
       dibujar,
       vectores,
+      actualizar(nuevo) {
+        const antes = filtradas()[elegido];
+        estado = nuevo;
+        todas = reunir();
+        if (antes && elegido > 0) {
+          const i = filtradas().findIndex((e) => e.instante === antes.instante && e.texto === antes.texto);
+          if (i >= 0) { primera += i - elegido; elegido = i; }
+        }
+      },
       tecla(ev) {
         const acciones = {
           ArrowLeft: () => cambiarFiltro(-1), ArrowRight: () => cambiarFiltro(1),

@@ -11,8 +11,8 @@
   function leerVisto() {
     try { return localStorage.getItem(CLAVE_VISTO); } catch (_) { return null; }
   }
-  function marcarVisto(fecha) {
-    try { localStorage.setItem(CLAVE_VISTO, fecha); } catch (_) { /* sin almacenamiento: no pasa nada */ }
+  function marcarVisto(dia) {
+    try { localStorage.setItem(CLAVE_VISTO, dia); } catch (_) { /* sin almacenamiento: no pasa nada */ }
   }
 
   function envolver(texto, ancho) {
@@ -39,13 +39,13 @@
     setTimeout(paso, 400);
   }
 
-  function crear({ fecha, estado, alTerminar }) {
+  function crear({ estado, alTerminar }) {
     const P = DENDRO.pantalla;
     const areaTexto = () => P.region(2, 1, P.columnas - 4, P.filas - 2);
     const consola = DENDRO.escritor.crearConsola(areaTexto);
     const escritor = DENDRO.escritor.crearEscritor(consola);
-    const rng = DENDRO.prng.crear(fecha, "arranque");
-    const saltable = leerVisto() === fecha;
+    const rng = DENDRO.prng.crear(estado.dia, "arranque");
+    const saltable = leerVisto() === estado.dia;
     const fase = estado.fase, intensidad = estado.intensidad;
     const lento = 1 + intensidad;   // el sistema tarda más cuanto peor está (como mucho el doble)
     let etapa = "texto";
@@ -119,7 +119,7 @@
     }
 
     async function guion() {
-      const a = cfg().agencia, z = cfg().cronologia.zonaHoraria;
+      const a = cfg().agencia;
       const sede = a.sede.toLocaleUpperCase("es");
       await esperar(350);
       await linea([{ t: `${a.sistema} v${a.version}`, c: "ambar" }, { t: "  MONITOR DE SUSTRATO M11", c: "textoTenue" }]);
@@ -139,14 +139,14 @@
       await barra("CALIBRANDO AISLANTES DE FASE");
       await linea("");
       await linea([{ t: "SINCRONIZANDO META-TIEMPO τ " }, { relleno: ".", c: "ambarTenue" }, fase >= 4 ? { t: " IRREGULAR", c: "arma" } : { t: " OK", c: "exito" }]);
-      await linea([{ t: "  FECHA DE AGENCIA  ", c: "textoTenue" }, { t: `${fecha}  ${DENDRO.reloj.horaAgencia()}` }]);
-      await linea([{ t: "  ZONA HORARIA      ", c: "textoTenue" }, { t: z.toUpperCase() }]);
+      await linea([{ t: "  META-TIEMPO       ", c: "textoTenue" }, { t: DENDRO.tau.reloj(DENDRO.reloj.ahora()) }]);
+      await linea([{ t: "  REFERENCIA        ", c: "textoTenue" }, { t: `FUNDACIÓN DE LA ${sede} · τ 0.000` }]);
       await linea([{ t: `ENLACE CON LA ${sede} ` }, { relleno: ".", c: "ambarTenue" }]);
       await esperar(650);
       consola.anexar(fase >= 4 ? { t: " INESTABLE", c: "arma" } : fase === 3 ? { t: " DEGRADADO", c: "ambar" } : { t: " ESTABLECIDO", c: "exito" });
       if (fase >= 4) await linea([{ t: "ADVERTENCIA: PÉRDIDA DE COHESIÓN EN EL TRONCO", c: "arma", e: { parpadeo: true } }]);
       await esperar(900);
-      marcarVisto(fecha);
+      marcarVisto(estado.dia);
       etapa = "logo";
       DENDRO.sonido.beep(fase >= 3 ? 440 : 880);
       dibujar();
@@ -174,7 +174,7 @@
       y += 1;
       const fin = interior.centrar(y, indicacion, "ambar");
       P.ponerCursor(interior.x + fin + 1, interior.y + y);
-      r.derecha(r.alto - 1, ` ${fecha} `, "ambarTenue");
+      r.derecha(r.alto - 1, ` ${DENDRO.tau.instante(estado.instante)} `, "ambarTenue");
     }
 
     function dibujar() {

@@ -88,7 +88,7 @@
       const fa = cfgO().ciclosEnPantalla, fb = fa + latidos(par);
       const tau = (x) => x + segundos * VELOCIDAD;
       const muerta = (id) => ["ANIQUILADA", "COLAPSO"].includes(C.tierra(estado, id).estado);
-      const rng = DENDRO.prng.crear(estado.fecha, "osciloscopio", Math.floor(ahora / 50));
+      const rng = DENDRO.prng.crear(estado.dia, "osciloscopio", Math.floor(ahora / 50));
       const ruidoFotograma = [];
       for (let i = 0; i <= MUESTRAS; i++) ruidoFotograma.push(rng() * 2 - 1);
       const nivelRuido = par.estado === "HOSTILIDADES" ? 0.35 : par.estado === "INTERFERENCIA" ? 0.15 : par.estado === "SUPERVIVIENTE" ? 0.2 : 0.02;

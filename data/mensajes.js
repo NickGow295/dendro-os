@@ -3,7 +3,7 @@
 window.DENDRO_DATOS = window.DENDRO_DATOS || {};
 window.DENDRO_DATOS.mensajes = [
   {
-    id: "M-001", fecha: "2026-10-20", de: "SISTEMA", asunto: "Bienvenida al turno",
+    id: "M-001", instante: "2026-10-20T08:00", de: "SISTEMA", asunto: "Bienvenida al turno",
     cuerpo: [
       "Operador: queda asignado a la consola de vigilancia DR-7 de la Estación Raíz.",
       "",
@@ -15,7 +15,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-002", fecha: "2026-10-22", de: "AGENTE IRIARTE (CAMPO, VELMORA)", asunto: "Los magos lo sienten",
+    id: "M-002", instante: "2026-10-22T10:00", de: "AGENTE IRIARTE (CAMPO, VELMORA)", asunto: "Los magos lo sienten",
     cuerpo: [
       "Estación Raíz:",
       "",
@@ -27,7 +27,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-003", fecha: "2026-10-26", de: "AGENTE IRIARTE (CAMPO, VELMORA)", asunto: "Van a disparar",
+    id: "M-003", instante: "2026-10-26T18:00", de: "AGENTE IRIARTE (CAMPO, VELMORA)", asunto: "Van a disparar",
     cuerpo: [
       "Ya dispararon una vez. Las runas aguantaron, pero el muro oriental de la ciudad se agrietó entero con el eco.",
       "",
@@ -39,7 +39,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-004", fecha: "2026-11-10", de: "AGENTE SÔL VARGA (HALCYON)", asunto: "Se dieron la mano",
+    id: "M-004", instante: "2026-11-10T09:00", de: "AGENTE SÔL VARGA (HALCYON)", asunto: "Se dieron la mano",
     cuerpo: [
       "Las dos Halcyon votaron. Noventa y siete por ciento a favor en una, noventa y ocho en la otra. Por supuesto que votaron: es lo que hacen.",
       "",
@@ -51,7 +51,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-005", fecha: "2026-11-19", de: "DESCONOCIDO (ARBÓREA)", asunto: "—",
+    id: "M-005", instante: "2026-11-19T11:00", de: "DESCONOCIDO (ARBÓREA)", asunto: "—",
     cuerpo: [
       "⌇⌇ ꕤ ⌇ ꕤꕤ ⌇⌇⌇ ꕤ ⌇ ꕤ ⌇⌇ ꕤꕤꕤ ⌇",
       "ꕤ ⌇⌇ ꕤ ⌇⌇⌇ ꕤ ⌇ ꕤꕤ ⌇ ꕤ ⌇⌇",
@@ -62,7 +62,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-006", fecha: "2026-12-01", de: "AGENTE SÔL VARGA", asunto: "Tierra Gris",
+    id: "M-006", instante: "2026-12-01T07:00", de: "AGENTE SÔL VARGA", asunto: "Tierra Gris",
     cuerpo: [
       "Nadie allí supo nada.",
       "",
@@ -72,11 +72,11 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-007", fecha: "2026-12-08", de: "DIRECTORA AMARANTA KESH", asunto: "A todo el personal",
+    id: "M-007", instante: "2026-12-08T07:30", de: "DIRECTORA AMARANTA KESH", asunto: "A todo el personal",
     cuerpo: [
       "Se suspenden las contenciones locales con efecto inmediato.",
       "",
-      "No funcionan. Ninguna ha cambiado una sola lectura de Δω desde el 27 de octubre, y nos cuestan energía que ya no tenemos.",
+      "No funcionan. Ninguna ha cambiado una sola lectura de Δω desde la primera colisión, y nos cuestan energía que ya no tenemos.",
       "",
       "Prioridad única: proteger el ancla. Todo el sustrato disponible se desvía a Origen.",
       "",
@@ -84,7 +84,7 @@ window.DENDRO_DATOS.mensajes = [
     ],
   },
   {
-    id: "M-008", fecha: "2026-12-15", de: "DIRECTORA AMARANTA KESH", asunto: "Si alguien lee esto",
+    id: "M-008", instante: "2026-12-15T22:00", de: "DIRECTORA AMARANTA KESH", asunto: "Si alguien lee esto",
     cuerpo: [
       "Si alguien lee esto, la Estación Raíz todavía tiene corriente. Bien.",
       "",

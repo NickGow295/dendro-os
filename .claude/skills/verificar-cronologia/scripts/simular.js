@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Simula DENDRO.cronologia.calcularEstado día a día fuera del navegador.
-// Uso: node .claude/skills/verificar-cronologia/scripts/simular.js [desde] [hasta]
+// Simula DENDRO.cronologia.calcularEstado(instante) fuera del navegador y comprueba los criterios.
+// Uso: node .claude/skills/verificar-cronologia/scripts/simular.js [desde] [hasta] [pasoHoras]
+//   desde / hasta: "AAAA-MM-DD" o "AAAA-MM-DDThh:mm" (hora local de config). pasoHoras: 24 por defecto
+//   para la tabla; las comprobaciones de monotonía van siempre hora a hora.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -15,6 +17,7 @@ const archivos = [
   "data/mensajes.js",
   "js/nucleo/prng.js",
   "js/nucleo/reloj.js",
+  "js/nucleo/tau.js",
   "js/nucleo/cronologia.js",
 ];
 
@@ -24,6 +27,7 @@ const contexto = {
   location: { search: "", href: "file:///index.html" },
   localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   matchMedia: () => ({ matches: false, addEventListener() {} }),
+  setTimeout, clearTimeout,
 };
 contexto.window = contexto;
 contexto.self = contexto;
@@ -32,73 +36,92 @@ vm.createContext(contexto);
 for (const rel of archivos) {
   const ruta = path.join(raiz, rel);
   if (!fs.existsSync(ruta)) {
-    if (rel === "data/mensajes.js") continue; // opcional para esta prueba
     console.error(`Falta ${rel}. Ejecuta el script desde la raíz del proyecto.`);
     process.exit(2);
   }
   vm.runInContext(fs.readFileSync(ruta, "utf8"), contexto, { filename: rel });
 }
 
-const cron = contexto.DENDRO && contexto.DENDRO.cronologia;
+const D = contexto.DENDRO;
+const cron = D && D.cronologia;
 if (!cron || typeof cron.calcularEstado !== "function") {
-  console.error("No se encontró DENDRO.cronologia.calcularEstado(fecha).");
+  console.error("No se encontró DENDRO.cronologia.calcularEstado(instante).");
   process.exit(2);
 }
 
-const sumarDias = (iso, n) => {
-  const d = new Date(iso + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-
-const desde = process.argv[2] || "2026-10-18";
-const hasta = process.argv[3] || "2026-12-31";
+const HORA = 3600000;
 const cfg = contexto.DENDRO_CONFIG;
-const final = cfg.cronologia.ramasAfectadasFinal;
+const cr = cfg.cronologia;
+const final = cr.ramasAfectadasFinal;
+const ms = (x) => D.reloj.aInstante(x);
+const en = (x) => cron.calcularEstado(x);
+const local = (t) => { const p = D.reloj.partesEn(t); return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`; };
+const enColision = (e) => e.tierras.filter((t) => !["ESTABLE", "APROXIMACIÓN"].includes(t.estado)).length;
+
+const desde = ms(process.argv[2] || "2026-10-18");
+const hasta = ms(process.argv[3] || "2026-12-31");
+const pasoTabla = Number(process.argv[4] || 24) * HORA;
 
 const fallos = [];
 const comprobar = (ok, msg) => { if (!ok) fallos.push(msg); };
 
-console.log("fecha       fase          alerta    p      int    ramas        parejas");
+console.log("instante          τ          fase          alerta    p      int    ramas        parejas");
 let anterior = null;
-for (let f = desde; f <= hasta; f = sumarDias(f, 1)) {
-  const e = cron.calcularEstado(f);
-  const e2 = cron.calcularEstado(f);
-  comprobar(JSON.stringify(e) === JSON.stringify(e2), `${f}: no determinista`);
-
+for (let t = desde; t <= hasta; t += HORA) {
+  const e = en(t);
+  if (anterior) {
+    comprobar(e.ramasAfectadas >= anterior.ramasAfectadas, `${local(t)}: ramas afectadas disminuye`);
+    comprobar(e.fase >= anterior.fase, `${local(t)}: la fase retrocede`);
+    comprobar(enColision(e) >= enColision(anterior), `${local(t)}: ramas en colisión disminuye`);
+  }
+  anterior = e;
+  if ((t - desde) % pasoTabla) continue;
+  comprobar(JSON.stringify(e) === JSON.stringify(en(t)), `${local(t)}: no determinista`);
   const conteo = {};
   for (const par of e.parejas || []) conteo[par.estado] = (conteo[par.estado] || 0) + 1;
   const resumen = Object.entries(conteo).map(([k, v]) => `${k}:${v}`).join(" ");
   console.log(
-    `${f}  ${String(e.fase + " " + e.nombreFase).padEnd(13)} ${String(e.nivelAlerta).padEnd(9)} ` +
+    `${local(t)}  ${D.tau.corto(t).padEnd(9)}  ${String(e.fase + " " + e.nombreFase).padEnd(13)} ${String(e.nivelAlerta).padEnd(9)} ` +
     `${e.p.toFixed(3)}  ${e.intensidad.toFixed(2)}  ${String(e.ramasAfectadas).padStart(10)}   ${resumen}`
   );
-
-  if (anterior) {
-    comprobar(e.ramasAfectadas >= anterior.ramasAfectadas, `${f}: ramas afectadas disminuye`);
-    comprobar(e.fase >= anterior.fase, `${f}: la fase retrocede`);
-  }
-  anterior = e;
 }
 
-const en = (f) => cron.calcularEstado(f);
-const cr = cfg.cronologia;
-comprobar(en(sumarDias(cr.inicioAlerta, -1)).fase === 0, "día previo al inicio no es fase 0");
-comprobar(en(sumarDias(cr.inicioAlerta, -1)).ramasAfectadas === 0, "día previo al inicio con ramas > 0");
-comprobar(en(cr.inicioAlerta).fase === 1, "inicio de alerta no es fase 1");
-comprobar(en(cr.inicioAlerta).ramasAfectadas === 0, "inicio de alerta con ramas > 0");
-comprobar(en(cr.primeraColision).ramasAfectadas === 2, "primera colisión no tiene exactamente 2 ramas");
-const c01 = (en(cr.primeraColision).parejas || []).find((p) => p.id === "C-01");
-comprobar(c01 && /CONTACTO/i.test(c01.estado), "C-01 no está en CONTACTO el día de la primera colisión");
-comprobar(en(cr.colapsoTotal).fase === 5, "día del colapso no es fase 5");
-comprobar(en(cr.colapsoTotal).ramasAfectadas === final, "día del colapso no alcanza ramasAfectadasFinal");
-const hostiles = (en(cr.inicioAlerta).parejas || []).filter((p) => /hostil/.test(p.postura)).length;
+// Criterios de 01-requisitos.md §5 y fechas clave
+const c01 = (x) => en(x).parejas.find((p) => p.id === "C-01");
+comprobar(en("2026-10-19T12:00").fase === 0 && en("2026-10-19T12:00").ramasAfectadas === 0, "10-19: no es nominal con 0 ramas");
+comprobar(en(cr.inicioAlerta).fase === 1 && en(cr.inicioAlerta).ramasAfectadas === 0, "inicio de alerta: no es fase 1 con 0 ramas");
+comprobar(en("2026-10-27T03:16").ramasAfectadas === 0 && c01("2026-10-27T03:16").estado === "APROXIMACIÓN", "10-27 03:16: ya hay colisión");
+comprobar(en(cr.primeraColision).ramasAfectadas === 2 && c01(cr.primeraColision).estado === "CONTACTO", "primera colisión: no hay exactamente 2 ramas con C-01 en CONTACTO");
+comprobar(en("2026-10-27T12:00").ramasAfectadas === 2 && enColision(en("2026-10-27T12:00")) === 2, "10-27 12:00: no hay exactamente 2 ramas en colisión");
+comprobar(en("2026-12-16T13:59").fase === 4 && en("2026-12-16T13:59").rectaFinal, "12-16 13:59: no es recta final");
+comprobar(en(cr.colapsoTotal).fase === 5 && en(cr.colapsoTotal).ramasAfectadas === final, "colapso: no es fase 5 con ramasAfectadasFinal");
+comprobar(en("2026-12-25T12:00").fase === 5, "12-25: no es colapso");
+comprobar(en(cr.inicioRectaFinal).intensidad === cfg.efectos.glitchMaximo, "recta final: la intensidad no es máxima");
+const hostiles = en(cr.inicioAlerta).parejas.filter((p) => /hostil/.test(p.postura)).length;
 comprobar(hostiles >= 4, `solo ${hostiles} parejas hostiles (mínimo 4)`);
+comprobar(en("2026-10-25T12:00").ataques.some((a) => a.desde === "B-0x02" && a.hacia === "B-0x01"), "10-25: Ostrakh no ataca a Velmora");
+comprobar(D.tau.corto(ms(cr.inicioAlerta)) === "7525.000", `τ del inicio de alerta: ${D.tau.corto(ms(cr.inicioAlerta))}`);
+comprobar(D.tau.corto(ms(cr.colapsoTotal)) === "7582.583", `τ del colapso: ${D.tau.corto(ms(cr.colapsoTotal))}`);
+
+// Ninguna fecha de nuestro calendario en los textos que llegan a pantalla.
+const FECHA = /20\d\d-\d\d|\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
+for (const x of ["2026-10-27T12:00", "2026-12-15T23:00"]) {
+  const e = en(x);
+  const textos = [...e.registro.map((r) => r.texto), ...e.mensajesDisponibles.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]),
+    ...e.archivo.flatMap((d) => [d.titulo, ...d.texto])];
+  const conFecha = textos.filter((s) => FECHA.test(s));
+  comprobar(!conFecha.length, `${x}: textos con fecha de calendario: ${conFecha.slice(0, 3).join(" | ")}`);
+}
+
+const inicio = Date.now();
+for (let i = 0; i < 20; i++) en(ms("2026-12-12T12:00") + i * 60000);
+const medio = (Date.now() - inicio) / 20;
+console.log(`\ncalcularEstado: ${medio.toFixed(1)} ms de media`);
 
 console.log("");
 if (fallos.length) {
   console.log(`✗ ${fallos.length} comprobación(es) fallida(s):`);
-  for (const m of [...new Set(fallos)]) console.log("  - " + m);
+  for (const m of [...new Set(fallos)].slice(0, 30)) console.log("  - " + m);
   process.exit(1);
 }
 console.log("✓ Todas las comprobaciones pasan.");

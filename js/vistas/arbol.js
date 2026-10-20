@@ -94,7 +94,7 @@
 
     function grietas(v, a, segundos) {
       if (estado.fase < 3) return;
-      const rng = DENDRO.prng.crear(estado.fecha, "grietas");
+      const rng = DENDRO.prng.crear(estado.dia, "grietas");
       const n = Math.round(estado.intensidad * 16);
       for (let i = 0; i < n; i++) {
         const s = arbol.segmentos[Math.floor(rng() * arbol.segmentos.length)];
@@ -116,7 +116,7 @@
 
     function particulas(v, a, segundos) {
       if (estado.fase < 4) return;
-      const rng = DENDRO.prng.crear(estado.fecha, "particulas");
+      const rng = DENDRO.prng.crear(estado.dia, "particulas");
       for (let i = 0; i < 40; i++) {
         const s = arbol.segmentos[Math.floor(rng() * arbol.segmentos.length)];
         const t = rng(), fase = rng(), deriva = (rng() - 0.5) * 2;

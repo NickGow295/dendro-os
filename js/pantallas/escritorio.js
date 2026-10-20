@@ -53,14 +53,16 @@
     };
   }
 
-  function crear({ estado, salir }) {
+  function crear({ estado: inicial, salir }) {
     const P = DENDRO.pantalla;
+    let estado = inicial;
     const ui = { parejaSeleccionada: estado.parejaPrincipal, tierraSeleccionada: null };
     let activa = null, entradaActiva = null, transicion = -Infinity, reloj = 0, pestanas = [];
 
     const regionVista = () => P.region(0, 1, P.columnas, P.filas - 2);
     const ctx = {
-      estado, ui,
+      get estado() { return estado; },
+      ui,
       region: regionVista,
       abrir,
       salir: salir || (() => {}),
@@ -104,17 +106,17 @@
       const ancho = r.ancho >= 80;
       r.rellenar(0, y, r.ancho, 1);
       const [colorAlerta, estiloAlerta] = ALERTA[estado.nivelAlerta];
-      const hora = DENDRO.reloj.horaAgencia();
+      const ahora = DENDRO.reloj.ahora();
       let x = 1;
       const tramo = (texto, color, estilo) => { x = r.escribir(x, y, texto, color, estilo); x = r.escribir(x, y, " │ ", "ambarTenue"); };
       if (ancho) {
-        tramo(`${estado.fecha} ${hora}`, "texto");
+        tramo(DENDRO.tau.reloj(ahora), "texto");
         tramo(`FASE ${estado.fase} ${estado.nombreFase}`, "ambar");
         tramo(` ALERTA ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
         x = r.escribir(x, y, `RAMAS ${formatoRamas(estado.ramasAfectadas)}`, "texto");
         r.derecha(y, `OPERADOR ${operador()} `, "textoTenue");
       } else {
-        tramo(`${estado.fecha.slice(5)} ${hora.slice(0, 5)}`, "texto");
+        tramo(DENDRO.tau.corto(ahora), "texto");
         tramo(`F${estado.fase}`, "ambar");
         tramo(` ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
         r.escribir(x, y, formatoRamas(estado.ramasAfectadas), "texto");
@@ -151,10 +153,23 @@
       },
       iniciar() {
         abrir("colision");
-        reloj = setInterval(dibujarBarraEstado, 1000);
+        reloj = setInterval(dibujarBarraEstado, DENDRO.tau.latido());
         if (estado.fase >= 3) setTimeout(() => DENDRO.sonido.alarma(estado.fase >= 4 ? 6 : 3), 600);
       },
       dibujar,
+      // Nuevo minuto: la vista activa se actualiza (o se vuelve a crear) con el nuevo Estado.
+      actualizar(nuevo) {
+        const anterior = estado;
+        estado = nuevo;
+        if (nuevo.fase > anterior.fase && nuevo.fase >= 3) DENDRO.sonido.alarma(nuevo.fase >= 4 ? 6 : 3);
+        if (activa && activa.actualizar) activa.actualizar(nuevo);
+        else if (activa && entradaActiva && DENDRO.vistas.obtener(entradaActiva.id)) {
+          if (activa.detener) activa.detener();
+          activa = DENDRO.vistas.obtener(entradaActiva.id).crear(ctx);
+        }
+        dibujar();
+        DENDRO.vectores.marcarSucio();
+      },
       vectores(raiz, ahora) {
         if (activa && activa.vectores) activa.vectores(regionVista().vectores(), ahora);
         barrido(ahora);
