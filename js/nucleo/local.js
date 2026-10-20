@@ -1,9 +1,10 @@
 // Estado local del operador (02-diseno.md §1, persistencia): registro de sus acciones, mensajes
-// leídos y documentos desbloqueados. Vive en localStorage y NUNCA alimenta la cronología global.
+// leídos, documentos desbloqueados y credencial de dirección (solo su hash). Vive en localStorage y
+// NUNCA alimenta la cronología global: la credencial cambia lo que se ve, no lo que pasa.
 (function (DENDRO) {
   "use strict";
 
-  const CLAVES = { registro: "dendro.registroLocal", leidos: "dendro.leidos", desbloqueos: "dendro.desbloqueos" };
+  const CLAVES = { registro: "dendro.registroLocal", leidos: "dendro.leidos", desbloqueos: "dendro.desbloqueos", credencial: "dendro.credencial" };
   const MAXIMO_REGISTRO = 200;
 
   function leer(clave, porDefecto) {
@@ -29,6 +30,7 @@
     registro: leer(CLAVES.registro, []).map(migrar).filter(Boolean),
     leidos: leer(CLAVES.leidos, []),
     desbloqueos: leer(CLAVES.desbloqueos, []),
+    credencial: leer(CLAVES.credencial, null),
   };
 
   function registrar(tipo, texto) {
@@ -60,5 +62,15 @@
     return true;
   }
 
-  DENDRO.local = { registrar, entradas, leido, marcarLeido, desbloqueado, desbloquear };
+  // credencial() → ¿hay una credencial de dirección válida? credencial(hash) la guarda; credencial(null) la cierra.
+  function credencial(hash) {
+    if (arguments.length) {
+      memoria.credencial = hash || null;
+      if (hash) guardar(CLAVES.credencial, hash);
+      else { try { localStorage.removeItem(CLAVES.credencial); } catch (_) { /* nada que borrar */ } }
+    }
+    return DENDRO.credencial.valida(memoria.credencial);
+  }
+
+  DENDRO.local = { registrar, entradas, leido, marcarLeido, desbloqueado, desbloquear, credencial };
 })(window.DENDRO = window.DENDRO || {});

@@ -29,13 +29,16 @@
   <script src="../js/nucleo/prng.js"></script>
   <script src="../data/mensajes.js"></script>
   <script src="../data/archivo.js"></script>
+  <script src="../data/revelaciones.js"></script>
   <script src="../js/nucleo/reloj.js"></script>
   <script src="../js/nucleo/ruido.js"></script>
   <script src="../js/nucleo/tau.js"></script>
+  <script src="../js/nucleo/sha256.js"></script>
   <script src="../js/nucleo/multiverso.js"></script>
   <script src="../js/nucleo/tema.js"></script>
   <script src="../js/nucleo/cronologia.js"></script>
   <script src="../js/ui/globo.js"></script>
+  <script src="../js/nucleo/local.js"></script>
   <script>
     (function () {
       "use strict";
@@ -152,7 +155,8 @@
         const FECHA = /20\d\d-\d\d|\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
         for (const x of ["2026-10-27T12:00", "2026-12-15T23:00"]) {
           const e = en(x);
-          const textos = [...e.registro.map((r) => r.texto), ...e.mensajesDisponibles.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]), ...e.archivo.flatMap((d) => [d.titulo, ...d.texto])];
+          const textos = [...e.registro.map((r) => r.texto), ...e.mensajes.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]),
+            ...e.archivo.flatMap((d) => [d.titulo, ...d.texto.map((l) => (typeof l === "string" ? l : l.direccion + " " + l.sello))])];
           const malo = textos.find((s) => FECHA.test(s));
           if (malo) return malo;
         }
@@ -277,6 +281,63 @@
         for (const n of cat.nodos.filter((x) => !x.nombrada && !x.raiz).slice(0, mv.cacheGlobos + 10)) DENDRO.globo.modelo(n.semillaGlobo, n.globo, true);
         const c = DENDRO.globo.enCache();
         return (c.generados === mv.cacheGlobos && c.fijos === fijosAntes + 1) || JSON.stringify(c);
+      });
+
+
+      // Credencial de dirección (RF-18)
+      comprobar("SHA-256: vector conocido de «abc»", () => DENDRO.sha256("abc") === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+      comprobar("Credencial: la clave del lore coincide (sin mayúsculas, tildes ni espacios); otra no", () =>
+        DENDRO.credencial.valida(DENDRO.credencial.hash("Postrera")) && DENDRO.credencial.valida(DENDRO.credencial.hash(" postréra ")) &&
+        !DENDRO.credencial.valida(DENDRO.credencial.hash("VELMORA")) && !DENDRO.credencial.valida(""));
+      comprobar("Credencial: abre y cierra en DENDRO.local, y el Estado no cambia", () => {
+        const t = "2026-12-12T12:00", antes = JSON.stringify(en(t));
+        DENDRO.local.credencial(DENDRO.credencial.hash("POSTRERA"));
+        const abierta = DENDRO.local.credencial(), con = JSON.stringify(en(t));
+        DENDRO.local.credencial(null);
+        return abierta && !DENDRO.local.credencial() && con === antes;
+      });
+
+      // Canales y archivo (RF-17)
+      comprobar("Canales: G-01 al empezar la alerta; dirección vacía hasta D-01", () => {
+        const a = en("2026-10-20T08:00").mensajes, b = en("2026-10-27T08:59").mensajes, c = en("2026-10-27T09:00").mensajes;
+        return a.map((m) => m.id).join() === "G-01" && !b.some((m) => m.canal === "direccion") && c.some((m) => m.id === "D-01");
+      });
+      comprobar("Canales: 10 mensajes generales y 17 de dirección; solo D-14 visible sin credencial", () => {
+        const m = en("2026-12-16T13:59").mensajes;
+        const g = m.filter((x) => x.canal === "general").length, d = m.filter((x) => x.canal === "direccion");
+        return (g === 10 && d.length === 17 && d.filter((x) => x.visibleSinCredencial).map((x) => x.id).join() === "D-14") || `${g} / ${d.length}`;
+      });
+      comprobar("Archivo: los clasificados no existen antes de su emisión", () =>
+        !en("2026-12-06T08:59").archivo.some((d) => d.codigo === "CLAS-INJ-01") && en("2026-12-06T09:00").archivo.some((d) => d.codigo === "CLAS-INJ-01") &&
+        en("2026-10-20T12:00").archivo.filter((d) => d.clasificado).length === 0);
+      comprobar("Archivo: PROC-FIR-02 pasa a la rev. 4 en vivo", () => {
+        const a = en("2026-10-30T08:59").archivo.find((d) => d.codigo === "PROC-FIR-02"), b = en("2026-10-30T09:00").archivo.find((d) => d.codigo === "PROC-FIR-02");
+        return a.rev === 3 && b.rev === 4 && b.texto.length > a.texto.length && b.revisado > a.revisado;
+      });
+      comprobar("Archivo: PROC-ADM-01 lleva la pista y PROC-MYT-00 un fragmento de dirección", () => {
+        const docs = en("2026-10-20T12:00").archivo;
+        return docs.find((d) => d.codigo === "PROC-ADM-01").texto.some((l) => /no debería existir/.test(l)) &&
+          docs.find((d) => d.codigo === "PROC-MYT-00").texto.some((l) => typeof l === "object" && l.direccion && l.sello);
+      });
+
+      // Revelaciones (04-lore.md §7)
+      comprobar("Hitos: omega i a las 04:40 del 11-08, sarmiento el 12-04, silueta el 16/12", () => {
+        const h = (x) => en(x).hitos;
+        return !h("2026-11-08T04:39").omegaI && h("2026-11-08T04:40").omegaI && !h("2026-12-04T11:59").sarmiento &&
+          h("2026-12-04T12:00").sarmiento && !h("2026-12-15T23:59").silueta && h(cr.inicioRectaFinal).silueta;
+      });
+      comprobar("Silueta: 0.15 al aparecer, 1 en el último minuto, nada tras el colapso", () => {
+        const a = en(cr.inicioRectaFinal).silueta, b = en("2026-12-16T13:59").silueta, c = en(cr.colapsoTotal).silueta;
+        return a.visible && Math.abs(a.opacidad - 0.15) < 1e-9 && b.visible && b.opacidad === 1 && !c.visible && !en("2026-12-15T12:00").silueta.visible;
+      });
+      comprobar("Registro: pistas corruptas fijas en su minuto", () => {
+        const r = en("2026-12-03T05:05").registro.map((x) => x.texto);
+        return r.some((x) => x.includes("P░ST░░░A")) && r.some((x) => x.includes("ESC░RDA")) && !en("2026-12-03T05:04").registro.some((x) => x.texto.includes("ESC░RDA"));
+      });
+      comprobar("Expedientes: MYTH con sus eventos y las generadas con los de su pareja", () => {
+        const e = en("2026-12-12T12:00");
+        const myth = e.tierras.porCodigo("MYTH"), gen = e.tierras.porCodigo(cat.parejas[0].a);
+        return myth.raiz && myth.eventos.some((x) => /N̂/.test(x.texto)) && gen.eventos.length > 0 && gen.eventos.every((x) => x.tierras.includes(gen.codigo));
       });
 
       comprobar("calcularEstado tarda menos de 20 ms de media", () => {

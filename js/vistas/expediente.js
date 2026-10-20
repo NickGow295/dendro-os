@@ -1,5 +1,7 @@
-// V5 EXPEDIENTE (02-diseno.md §6): ficha de una tierra con su globo, datos, barra de estabilidad
+// V5 EXPEDIENTE (02-diseno.md §6): ficha de una rama con su globo, datos, barra de estabilidad
 // y línea temporal dibujada con sus eventos hasta hoy; el tramo futuro, rayado y sin datos.
+// Completa para MYTH (cohesión N̂ y guardianes, sellados sin credencial) y las 24 nombradas;
+// corta para las generadas, que llegan seleccionadas desde COLISIÓN o la terminal.
 (function (DENDRO) {
   "use strict";
 
@@ -11,8 +13,9 @@
   function crear(ctx) {
     const { ui } = ctx;
     let estado = ctx.estado;
-    const ids = estado.tierras.nombradas.map((t) => t.codigo);
-    if (!ids.includes(ui.tierraSeleccionada)) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
+    const ids = ["MYTH", ...estado.tierras.nombradas.map((t) => t.codigo)];
+    if (!ui.tierraSeleccionada || !estado.tierras.porCodigo(ui.tierraSeleccionada)) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
+    let primeraLista = 0;
     let evento = -1;   // índice del evento resaltado en la línea temporal (−1: el último)
     let zonaGlobo = null, zonaLinea = null, campoOmega = null;
 
@@ -25,45 +28,78 @@
     };
 
     function dibujarLista(reg) {
-      ids.forEach((id, i) => {
-        if (i >= reg.alto) return;
+      const i = ids.indexOf(ui.tierraSeleccionada);
+      if (i >= 0) primeraLista = C.desplazamiento(primeraLista, i, reg.alto);
+      ids.slice(primeraLista, primeraLista + reg.alto).forEach((id, fila) => {
         const t = C.tierra(estado, id), activa = id === ui.tierraSeleccionada;
-        reg.rellenar(0, i, reg.ancho, 1, " ", "ambar", activa ? { inverso: true } : null);
-        reg.escribir(1, i, `${C.codigoCorto(id)} ${MAYUS(t.nombre)}`.slice(0, reg.ancho - 3), activa ? "ambar" : COLOR_ESTADO[t.estado] === "tierra" ? "texto" : COLOR_ESTADO[t.estado], activa ? { inverso: true } : null);
+        reg.rellenar(0, fila, reg.ancho, 1, " ", "ambar", activa ? { inverso: true } : null);
+        const rotulo = t.raiz ? "MYTH · TRONCO" : `${C.codigoCorto(id)} ${MAYUS(t.nombre)}`;
+        reg.escribir(1, fila, rotulo.slice(0, reg.ancho - 3), activa ? "ambar" : t.raiz ? "rama" : COLOR_ESTADO[t.estado] === "tierra" ? "texto" : COLOR_ESTADO[t.estado], activa ? { inverso: true } : null);
       });
     }
+
+    const origen = (t) => (t.raiz ? "PRIMERA IGNICIÓN BETA" : t.joven ? `JOVEN · SALTO N.º ${t.salto} DE MYTH` : "ANTIGUA");
+    const barra = (t) => (t.raiz ? Math.round(t.cohesion * 100) : t.estabilidad);
+    const rotulo = (t) => (t.raiz ? "MYTH · TRONCO" : t.nombre ? `${t.codigo} · ${MAYUS(t.nombre)}` : t.codigo);
 
     function dibujarFicha(caja, t) {
       const par = t.pareja ? C.pareja(estado, t.pareja) : null;
       const otra = par ? C.tierra(estado, par.a === t.codigo ? par.b : par.a) : null;
       const filas = [];
       const fila = (etiqueta, valor, color) => filas.push([etiqueta, valor, color || "texto"]);
-      fila("DESIGNACIÓN", t.codigo, "tierra");
-      fila("NOMBRE", MAYUS(t.nombre));
-      fila("FIRMA ω", t.magia === "Inestable" ? "" : t.omega.toFixed(4), "tierra");
+      const ancho = caja.ancho - 17;
+      fila("DESIGNACIÓN", t.raiz ? "MYTH · TRONCO" : t.codigo, "tierra");
+      if (t.nombrada) fila("NOMBRE", MAYUS(t.nombre));
+      else if (!t.raiz) fila("DENOMINACIÓN", "LOCAL: NO CATALOGADA", "textoTenue");
+      fila("FIRMA ω", t.raiz ? "≡ 1.0000" : t.magia === "Inestable" ? "" : t.omega.toFixed(4), "tierra");
       fila("RÉGIMEN", MAYUS(t.magia));
       fila("TECNOLOGÍA", MAYUS(t.tecnologia));
-      const ancho = caja.ancho - 17;
-      const planos = t.planos.length ? MAYUS(t.planos.join(", ")) : "NINGUNO DETECTADO";
-      C.partir(planos, ancho).forEach((l, i) => fila(i ? "" : "PLANOS ANEXOS", l, "textoTenue"));
-      C.partir(MAYUS(t.caracter), ancho).forEach((l, i) => fila(i ? "" : "CARÁCTER", l, "textoTenue"));
+      fila("ORIGEN", origen(t), t.joven ? "ambar" : "texto");
+      if (t.nombrada || t.raiz) {
+        const planos = t.planos.length ? MAYUS(t.planos.join(", ")) : "NINGUNO DETECTADO";
+        C.partir(planos, ancho).forEach((l, i) => fila(i ? "" : "PLANOS ANEXOS", l, "textoTenue"));
+        C.partir(MAYUS(t.caracter), ancho).forEach((l, i) => fila(i ? "" : "CARÁCTER", l, "textoTenue"));
+      }
+      if (t.raiz) {
+        fila("RAMAS", `${DENDRO.escritorio.formatoRamas(estado.ramasCatalogadas - 1)} BROTAN DE ÉL`);
+        fila("ESTADO", t.estado, COLOR_ESTADO[t.estado]);
+        fila("COHESIÓN N̂", t.cohesion.toFixed(3), C.colorEstabilidad(barra(t)));
+        return filas;
+      }
       if (par) {
-        fila("PAREJA", `${par.id} · ${MAYUS(otra.nombre)}`, "ambar");
+        fila("PAREJA", `${par.id} · ${C.nombre(otra)}`, "ambar");
         fila("POSTURA", POSTURAS[par.postura], par.postura.includes("hostil") ? "arma" : "texto");
         const propias = (par.armas && par.armas[t.codigo]) || [];
         const contra = (par.armas && par.armas[otra.codigo]) || [];
         if (propias.length) fila("ARMAS", MAYUS(propias.map((a) => estado.armas[a].nombre).join(", ")), "arma");
         if (contra.length) fila("AMENAZA", MAYUS(contra.map((a) => estado.armas[a].nombre).join(", ")), "arma");
       }
-      fila("ESTADO", t.estado + (t.fusionadaCon ? ` CON ${MAYUS(C.tierra(estado, t.fusionadaCon).nombre)}` : ""), COLOR_ESTADO[t.estado]);
+      fila("ESTADO", t.estado + (t.fusionadaCon ? ` CON ${C.nombre(C.tierra(estado, t.fusionadaCon))}` : ""), COLOR_ESTADO[t.estado]);
       fila("ESTABILIDAD", `${t.estabilidad} %`, C.colorEstabilidad(t.estabilidad));
+      return filas;
+    }
+
+    // Guardianes de MYTH: sellados sin credencial de dirección.
+    function filasGuardianes() {
+      const filas = [["GUARDIANES", "", "ambar"]];
+      if (!DENDRO.local.credencial()) return [...filas, ["", "▒ SELLADO · REQUIERE CREDENCIAL", "arma"]];
+      for (const g of estado.myth.guardianes) {
+        filas.push([MAYUS(g.nombre).slice(0, 14), g.caido ? `CAÍDO EN ${DENDRO.tau.instante(g.cae)}` : "EN PIE", g.caido ? "arma" : "tierra"]);
+      }
+      return filas;
+    }
+
+    function escribirFicha(caja, t) {
+      const filas = dibujarFicha(caja, t);
+      const barraEn = filas.length;
+      if (t.raiz) filas.push(...filasGuardianes());
       filas.forEach(([etiqueta, valor, color], i) => {
         if (i >= caja.alto - 1) return;
         caja.escribir(1, i, etiqueta, "textoTenue");
         caja.escribir(COLUMNA_VALOR, i, valor, color);
-        if (etiqueta === "FIRMA ω" && t.magia === "Inestable") campoOmega = { region: caja, x: COLUMNA_VALOR, y: i };
+        if (etiqueta === "FIRMA ω" && t.magia === "Inestable" && !t.raiz) campoOmega = { region: caja, x: COLUMNA_VALOR, y: i };
       });
-      return Math.min(filas.length, caja.alto - 1);
+      return t.raiz ? barraEn - 1 : Math.min(barraEn, caja.alto - 1);   // fila de la barra
     }
 
     function dibujar(reg) {
@@ -73,18 +109,18 @@
       const altoLinea = ancho ? 8 : 7;
       if (ancho) {
         const anchoLista = 22, anchoFicha = 48;
-        dibujarLista(reg.caja(0, 0, anchoLista, reg.alto - altoLinea, { titulo: "TIERRAS", doble: false }));
+        dibujarLista(reg.caja(0, 0, anchoLista, reg.alto - altoLinea, { titulo: "RAMAS", doble: false }));
         zonaGlobo = reg.region(anchoLista, 0, reg.ancho - anchoLista - anchoFicha, reg.alto - altoLinea);
-        zonaGlobo.centrar(0, `${t.codigo} · ${MAYUS(t.nombre)}`, "ambar");
-        const ficha = reg.caja(reg.ancho - anchoFicha, 0, anchoFicha, reg.alto - altoLinea, { titulo: "EXPEDIENTE" });
-        const usadas = dibujarFicha(ficha, t);
+        zonaGlobo.centrar(0, rotulo(t), "ambar");
+        const ficha = reg.caja(reg.ancho - anchoFicha, 0, anchoFicha, reg.alto - altoLinea, { titulo: t.nombrada || t.raiz ? "EXPEDIENTE" : "FICHA BREVE" });
+        const usadas = escribirFicha(ficha, t);
         zonaGlobo.barra = { region: ficha, y: usadas };
       } else {
-        C.selector(reg, 0, `${t.codigo} ${MAYUS(t.nombre)}`);
+        C.selector(reg, 0, rotulo(t));
         const altoGlobo = Math.floor((reg.alto - 1 - altoLinea) * 0.36);
         zonaGlobo = reg.region(0, 1, reg.ancho, altoGlobo);
-        const ficha = reg.caja(0, 1 + altoGlobo, reg.ancho, reg.alto - 1 - altoGlobo - altoLinea, { titulo: "EXPEDIENTE" });
-        const usadas = dibujarFicha(ficha, t);
+        const ficha = reg.caja(0, 1 + altoGlobo, reg.ancho, reg.alto - 1 - altoGlobo - altoLinea, { titulo: t.nombrada || t.raiz ? "EXPEDIENTE" : "FICHA BREVE" });
+        const usadas = escribirFicha(ficha, t);
         zonaGlobo.barra = { region: ficha, y: usadas };
       }
       zonaLinea = reg.caja(0, reg.alto - altoLinea, reg.ancho, altoLinea, { titulo: "LÍNEA TEMPORAL", doble: false });
@@ -139,7 +175,11 @@
       v.globo(v.ancho / 2, (v.alto + 1) / 2, r, t, C.opcionesGlobo(estado, t, segundos));
 
       const b = zonaGlobo.barra;
-      if (b && b.y < b.region.alto) C.barraEstabilidad(b.region.vectores(), COLUMNA_VALOR, b.y + 0.2, Math.min(20, b.region.ancho - COLUMNA_VALOR - 2), t.estabilidad);
+      if (b && b.y < b.region.alto) {
+        // En MYTH, la barra de cohesión va junto a su lectura; en las demás, bajo la estabilidad.
+        const x = t.raiz ? COLUMNA_VALOR + 7 : COLUMNA_VALOR, y = t.raiz ? Math.floor(b.y) + 0.2 : b.y + 0.2;
+        C.barraEstabilidad(b.region.vectores(), x, y, Math.min(t.raiz ? 16 : 20, b.region.ancho - x - 2), barra(t));
+      }
 
       // En las tierras inestables, la ω no se deja leer: los dígitos oscilan (decorativo).
       if (campoOmega) {
@@ -151,7 +191,8 @@
     }
 
     function cambiarTierra(paso) {
-      ui.tierraSeleccionada = ids[(ids.indexOf(ui.tierraSeleccionada) + paso + ids.length) % ids.length];
+      const i = ids.indexOf(ui.tierraSeleccionada);
+      ui.tierraSeleccionada = i < 0 ? ids[0] : ids[(i + paso + ids.length) % ids.length];
       evento = -1;
       ctx.redibujar();
     }
@@ -188,8 +229,8 @@
           if (lado) cambiarTierra(lado);
           return;
         }
-        if (reg.ancho >= 80 && punto.x < 22 && punto.y >= 1 && punto.y <= ids.length) {
-          ui.tierraSeleccionada = ids[Math.floor(punto.y) - 1];
+        if (reg.ancho >= 80 && punto.x < 22 && punto.y >= 1 && primeraLista + Math.floor(punto.y) - 1 < ids.length) {
+          ui.tierraSeleccionada = ids[primeraLista + Math.floor(punto.y) - 1];
           evento = -1;
           ctx.redibujar();
           return;

@@ -389,9 +389,9 @@ El registro de un instante = eventos fijos de `data/eventos.js` con instante ≤
 - **Ruido**: el de cada día `x` usa la semilla `hash(x + "ruido")` y horas sembradas; solo aparece al pasar su minuto, así que el registro crece en vivo.
 - **Corrupción visual**: semilla `hash(díaLocal(t) + "corrupcion")` con probabilidad `intensidad · 0.35`. El texto original no cambia.
 
-**Revelaciones**: `data/revelaciones.js` define los hitos de la historia (`{ omegaI: "2026-11-08T04:40", sarmiento: "2026-12-04T12:00", vislumbres: "2026-12-06T09:00", silueta: "2026-12-16T00:00", … }`). `Estado.hitos` los resuelve a booleanos; las vistas y la terminal preguntan `estado.hitos.sarmiento`, nunca fechas.
+**Revelaciones**: `data/revelaciones.js` define los hitos de la historia (`omegaI`, `viaIII`, `sarmiento`, `injertador`, `vislumbres`, `eficacia`, `manifiesto`, `silueta`). `Estado.hitos` los resuelve a booleanos y `Estado.silueta` da `{ visible, opacidad }` (0.15 al aparecer, 1 en el último minuto, nada desde `tf`); las vistas y la terminal preguntan `estado.hitos.sarmiento`, nunca fechas.
 
-**Mensajes y archivo**: cada mensaje tiene `canal` (`general` | `direccion`) e `instante`; cada documento, `clasificado` (necesita credencial) y opcionalmente `desde`. `Estado.mensajes` contiene los ya emitidos de ambos canales; `Estado.archivo`, los ya emitidos. Qué se puede **leer** lo decide la vista con `DENDRO.local.credencial()`, no el motor.
+**Mensajes y archivo**: cada mensaje tiene `canal` (`general` | `direccion`) e `instante`; cada documento, `carpeta`, `codigo`, `rev`, `emitido` / `revisado` en τ, `clasificacion`, `aprobado`, `clasificado` (necesita credencial), opcionalmente `desde` (no existe antes; su revisión es ese instante), `desbloqueo` (orden de la terminal) y `revision: { desde, rev, texto }` (una revisión que llega en vivo). Una línea puede ser `{ direccion, sello }`: solo se lee con credencial. Las líneas de mensaje que empiezan por `──` son filetes de anexo. `Estado.mensajes` contiene los ya emitidos de ambos canales; `Estado.archivo`, los ya emitidos. Qué se puede **leer** lo decide la vista con `DENDRO.local.credencial()`, no el motor.
 
 ### 4.8 Estado resultante
 
@@ -545,13 +545,13 @@ Las vistas leen **solo** del `Estado` que reciben (al crearse o en `actualizar`)
 - Histograma vectorial de eventos por ciclo en la cabecera. Crece en vivo.
 
 **V7 COMUNICACIONES**:
-- Dos pestañas: `GENERAL` y `DIRECCIÓN` (Tab o ←/→ cambia de canal; tocar la pestaña). Cada una con su bandeja y su contador de no leídos; los no leídos parpadean y los leídos se guardan en `localStorage`.
+- Dos pestañas: `GENERAL` y `DIRECCIÓN` (←/→ cambia de canal —Tab queda para el navegador fuera de la escritura—; tocar la pestaña). Cada una con su bandeja y su contador de no leídos; los no leídos parpadean y los leídos se guardan en `localStorage`.
 - Mensajes con instante τ, remitente y asunto. Los anexos (informes reenviados) van dentro del cuerpo con un filete.
 - Sin credencial, `DIRECCIÓN` muestra `CANAL SELLADO · REQUIERE CREDENCIAL DE DIRECCIÓN` y `▒ N MENSAJES CIFRADOS`, salvo los mensajes marcados `visibleSinCredencial` (D-14).
 - Con COMUNICACIONES degradada (§4.3), algunos cuerpos llegan con líneas corruptas (semilla del día).
 
 **V8 ARCHIVO**:
-- Carpetas `MANUALES`, `PROCEDIMIENTOS`, `CLASIFICADOS`. Lista con código, título y revisión.
+- Carpetas `MANUALES`, `PROCEDIMIENTOS`, `CLASIFICADOS` (←/→ o tocar la pestaña). Lista con código, título y revisión.
 - Lector con la cabecera de documentación interna (código, revisión, emisión y revisión en τ, clasificación, aprobaciones) y el cuerpo; desplazable.
 - Clasificados ya emitidos sin credencial: `CLAS-INJ-01 · ░░░░░░░░░░ · SELLADO`. Los que aún no se han emitido no aparecen. El NEGRO sigue dependiendo de `semilla`.
 - Fragmentos dentro de documentos visibles que solo se ven con credencial (el paso 3 de PROC-MYT-00): `[ELIMINADO POR DIRECCIÓN]` sin ella.

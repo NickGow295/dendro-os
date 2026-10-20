@@ -27,7 +27,9 @@ El contenido vive en `data/` y en `specs/04-lore.md`. La lógica no se toca para
 
 ### Un evento o mensaje
 - Evento: fecha, tipo (`SISTEMA`, `COLISIÓN`, `HOSTIL`, `CONTENCIÓN`) y texto en mayúsculas sostenidas, estilo telegrama.
-- Mensaje: fecha de desbloqueo, remitente, asunto y cuerpo. Voz de personaje: agentes de campo cansados, la Directora Kesh sobria y directa.
+- Mensaje (`data/mensajes.js`): `canal` (`general` o `direccion`), instante, remitente, asunto y cuerpo; los anexos van en el cuerpo tras una línea que empieza por `──`. El general finge control (firma Ambrís); el de dirección cuenta la verdad. `visibleSinCredencial` solo para lo que todos deben ver. Nunca fechas de nuestro calendario en el texto: si hace falta, τ.
+- Documento (`data/archivo.js`): carpeta, código, revisión, emisión en τ, clasificación y aprobaciones; `clasificado` y `desde` si es de dirección; `{ direccion, sello }` para líneas que solo se leen con credencial.
+- Una pista con fecha: un hito en `data/revelaciones.js`, que las vistas consultan con `estado.hitos`.
 
 ### Un comando de terminal
 1. Añadir al registro de órdenes de `js/vistas/terminal.js` con `{ nombre, alias, uso, ayuda, oculto, ejecutar(args, estado, ctx, sesion) }`.

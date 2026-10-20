@@ -1,6 +1,8 @@
 // V0 TERMINAL (02-diseno.md §6): vista secundaria de órdenes. Registro { nombre, alias, ayuda,
-// oculto, ejecutar(args, estado, ctx) }, historial ↑/↓, Tab, latencia deliberada según intensidad,
-// órdenes de varias palabras y fallos sembrados cuando el sistema se degrada.
+// oculto, ejecutar(args, estado, ctx, sesion) }, historial ↑/↓, Tab, latencia deliberada según
+// intensidad, órdenes de varias palabras y fallos sembrados cuando el sistema se degrada.
+// ejecutar devuelve null cuando la orden todavía no existe (las ocultas que esperan su hito).
+// La credencial de dirección se pide con eco *, nunca entra en el historial y solo se guarda su hash.
 (function (DENDRO) {
   "use strict";
 
@@ -8,6 +10,8 @@
   const { MAYUS, COLOR_ESTADO } = C;
   const cfg = () => window.DENDRO_CONFIG;
   const PROMPT = [{ t: "OPERADOR@DR-7", c: "ambar" }, { t: "> ", c: "ambarTenue" }];
+  const PROMPT_CLAVE = [{ t: "CLAVE", c: "arma" }, { t: "> ", c: "ambarTenue" }];
+  const ESPERA_FALLO_CLAVE = 900;   // ms extra por cada intento fallido de la sesión
   const SIN_FALLOS = new Set(["ayuda", "limpiar", "salir"]);
   const BASURA = "▒░▓#%&@$?¿¡/\\|{}<>~ΔωτΩ";
   const PAUSA_LINEA = 14;   // ms entre líneas de una respuesta, como un teletipo
@@ -98,15 +102,16 @@
       ejecutar: (args, e, ctx, sesion) => {
         const t = buscarTierra(e, args.join(" "));
         if (!t) return [L(T("RAMA DESCONOCIDA. USE UN CÓDIGO (7A2·R9) O UN NOMBRE.", "arma"))];
+        ctx.ui.tierraSeleccionada = t.codigo;
+        sesion.pendiente = "expediente";
         if (!t.nombrada) {
           return [
             L(T(`${t.codigo} · ${t.raiz ? "TRONCO" : "DENOMINACIÓN LOCAL: NO CATALOGADA"}`, "ambar")),
             L(T("ω ", "textoTenue"), T(t.omega.toFixed(4), "tierra"), T("  RÉGIMEN ", "textoTenue"), T(MAYUS(t.regimen))),
             L(T("ESTADO ", "textoTenue"), T(t.estado, COLOR_ESTADO[t.estado]), T(`  ${t.raiz ? "COHESIÓN N̂" : "ESTABILIDAD"} ${t.estabilidad}%`, "textoTenue")),
+            L(T("[ENTER] ABRIR EXPEDIENTE", "ambarTenue")),
           ];
         }
-        ctx.ui.tierraSeleccionada = t.codigo;
-        sesion.pendiente = "expediente";
         return [
           L(T(`${t.codigo} · ${MAYUS(t.nombre)}`, "ambar")),
           L(T("ω ", "textoTenue"), T(t.magia === "Inestable" ? "LECTURA IMPOSIBLE" : t.omega.toFixed(4), "tierra"), T("  RÉGIMEN ", "textoTenue"), T(MAYUS(t.magia))),
@@ -148,6 +153,21 @@
         const texto = ["ANIQUILADA", "COLAPSO"].includes(t.estado) ? "OBJETIVO SIN SEÑAL · ACCIÓN ABORTADA" : "AISLANTE ACTIVADO · SIN EFECTO MEDIBLE EN Δω";
         DENDRO.local.registrar("CONTENCIÓN", `AISLAR RAMA (TERMINAL) · ${t.codigo} ${C.nombre(t)} · ${texto}`);
         return [L(T(`${t.codigo} ${t.nombre ? MAYUS(t.nombre) : ""}: `, "texto"), T(texto, texto.startsWith("OBJETIVO") ? "arma" : "exito"))];
+      },
+    },
+    {
+      nombre: "credencial", uso: "[cerrar]", ayuda: "credencial de dirección",
+      ejecutar: (args, e, ctx, sesion) => {
+        if (["cerrar", "revocar"].includes(args[0])) {
+          if (!DENDRO.local.credencial()) return [L(T("NO HAY CREDENCIAL DE DIRECCIÓN ACTIVA.", "textoTenue"))];
+          DENDRO.local.credencial(null);
+          DENDRO.local.registrar("SISTEMA", "CREDENCIAL DE DIRECCIÓN CERRADA");
+          ctx.redibujar();
+          return [L(T("CREDENCIAL DE DIRECCIÓN CERRADA. EL CANAL DE DIRECCIÓN Y LOS CLASIFICADOS QUEDAN SELLADOS.", "ambar"))];
+        }
+        if (DENDRO.local.credencial()) return [L(T("CREDENCIAL DE DIRECCIÓN YA ACTIVA · ", "ambar"), T("credencial cerrar", "texto"), T(" PARA SELLAR.", "ambar"))];
+        sesion.pedirClave = true;
+        return [L(T("INTRODUZCA LA CLAVE DE DIRECCIÓN (ESC CANCELA):", "ambar"))];
       },
     },
     {
@@ -210,17 +230,73 @@
     {
       nombre: "n-hat", alias: ["nhat", "n"], oculto: true,
       ejecutar: (args, e) => {
-        const n = Math.max(0, 1 - e.p * (e.fase >= 2 ? 1 : 0));
+        const n = e.myth.cohesion;
         const llenos = Math.round(n * 30);
-        const color = n > 0.5 ? "tierra" : n > 0.2 ? "ambar" : "arma";
+        const color = n > 0.6 ? "tierra" : n > 0.2 ? "ambar" : "arma";
         return [
-          L(T("POTENCIAL DE COHESIÓN DEL TRONCO", "ambar")),
-          L(T("N = ", "textoTenue"), T(n.toFixed(3), color)),
+          L(T("COHESIÓN N̂ ANCLADA EN MYTH", "ambar")),
+          L(T("N̂ = ", "textoTenue"), T(n.toFixed(3), color)),
           L(T("█".repeat(llenos), color), T("░".repeat(30 - llenos), "ambarTenue")),
         ];
       },
     },
+    {
+      nombre: "omega i", alias: ["omega", "ωi", "ω i", "omega-i"], oculto: true,
+      ejecutar: (args, e) => {
+        if (!e.hitos.omegaI) return [L(T("SIN LECTURAS.", "textoTenue"))];
+        return [
+          L(T("LECTURA ", "textoTenue"), T("ω = 1.0000i", "arma"), T(" · PARTE IMAGINARIA PURA", "textoTenue")),
+          L(T("POSICIÓN  ", "textoTenue"), T(posicionFirma(e), "ambar")),
+          L(T("BATIDO    ", "textoTenue"), T("NO OSCILA · CRECE SIN LÍMITE", "arma")),
+        ];
+      },
+    },
+    {
+      nombre: "sarmiento", oculto: true,
+      ejecutar: (args, e) => [e.hitos.sarmiento
+        ? L(T("MYTH·4K·7A2·S5 · SARMIENTO · DADA DE BAJA EN τ 6913.204 · CONVERGENCIA MENOR, SIN SUPERVIVIENTES", "ambar"))
+        : L(T("RAMA NO CATALOGADA.", "textoTenue"))],
+    },
+    {
+      nombre: "escarda", oculto: true,
+      ejecutar: (args, e) => {
+        if (!e.hitos.sarmiento) return null;
+        const lineas = [L(T("R. ESCARDA · MAESTRO INJERTADOR · SARMIENTO · ESTADO: NO CONSTA", "ambar"))];
+        if (DENDRO.local.credencial() && e.hitos.injertador) lineas.push(L(T("VÉASE CLAS-INJ-01 EN EL ARCHIVO (8).", "textoTenue")));
+        return lineas;
+      },
+    },
+    {
+      nombre: "myth", alias: ["guardianes", "los cinco"], oculto: true,
+      ejecutar: (args, e) => {
+        const lineas = [L(T("MYTH · TRONCO · ", "ambar"), T(`N̂ ${e.myth.cohesion.toFixed(3)}`, e.myth.cohesion > 0.6 ? "tierra" : "arma"))];
+        if (!DENDRO.local.credencial()) return [...lineas, L(T("GUARDIANES · SELLADO · REQUIERE CREDENCIAL DE DIRECCIÓN", "arma"))];
+        for (const g of e.myth.guardianes) {
+          lineas.push(L(T(`  ${MAYUS(g.nombre)} · ${MAYUS(g.titulo)}`.padEnd(32), "texto"),
+            g.caido ? T(`CAÍDO EN ${DENDRO.tau.instante(g.cae)}`, "arma") : T("EN PIE", "tierra")));
+        }
+        return lineas;
+      },
+    },
+    {
+      nombre: "injertador", alias: ["el injertador"], oculto: true,
+      ejecutar: (args, e) => {
+        if (!e.hitos.injertador) return null;
+        if (e.hitos.silueta) return [L(T("|ω = 1.0000i⟩ · YA ESTOY DEBAJO DE USTEDES.", "arma"))];
+        return [L(T("SIN RESPUESTA.", "textoTenue"))];
+      },
+    },
   ];
+
+  // Dónde leen los sensores la firma imaginaria: bajo la primaria que está cayendo, y más abajo cada vez.
+  function posicionFirma(e) {
+    if (e.hitos.silueta) return "BASE DE MYTH";
+    if (e.hitos.viaIII) return "BULK · DEBAJO DE LA ESTACIÓN RAÍZ";
+    const activas = e.activas.map((id) => C.pareja(e, id)).filter((p) => !p.nombrada && p.paraContacto <= 0);
+    if (!activas.length) return "SUSTRATO · CUADRANTE BAJO";
+    const ultima = activas.reduce((m, p) => (p.contacto > m.contacto ? p : m));
+    return `SUSTRATO · BAJO ${C.tierra(e, ultima.a).primaria}`;
+  }
 
   // Coincidencia más larga primero, para admitir órdenes de varias palabras (`quien vigila`).
   const NOMBRES = ORDENES.flatMap((o) => [o.nombre, ...(o.alias || [])].map((n) => ({ n, o })))
@@ -239,12 +315,14 @@
     const P = DENDRO.pantalla;
     let area = null;
     const consola = DENDRO.escritor.crearConsola(() => area);
-    const sesion = { pendiente: null, limpiar: false, estrecha: false };
+    const sesion = { pendiente: null, limpiar: false, estrecha: false, pedirClave: false };
+    let modoClave = false, fallosClave = 0;
     const historial = [];
     let entrada = "", posHistorial = -1, ocupada = false, cancelar = null, cuenta = 0;
 
     function lineaPrompt(marca) {
-      return [...PROMPT, { t: entrada, c: "texto" }, ...(marca ? [{ t: marca, c: "ambar", e: { parpadeo: true } }] : [])];
+      const texto = modoClave ? "*".repeat(Array.from(entrada).length) : entrada;
+      return [...(modoClave ? PROMPT_CLAVE : PROMPT), { t: texto, c: "texto" }, ...(marca ? [{ t: marca, c: "ambar", e: { parpadeo: true } }] : [])];
     }
 
     function refrescar() {
@@ -255,6 +333,8 @@
 
     function nuevoPrompt() {
       entrada = "";
+      modoClave = sesion.pedirClave;
+      sesion.pedirClave = false;
       consola.agregar(lineaPrompt());
       DENDRO.teclado.pedirTexto({ valor: "", maximo: 80, alCambiar });
       refrescar();
@@ -265,6 +345,38 @@
       entrada = v;
       DENDRO.sonido.tecla();
       refrescar();
+    }
+
+    // Compara sha256(sal + clave normalizada) con config; la espera crece con cada fallo.
+    async function validarClave() {
+      const clave = entrada;
+      modoClave = false;
+      entrada = "";
+      consola.reemplazarUltima([...PROMPT_CLAVE, { t: "*".repeat(Array.from(clave).length), c: "texto" }]);
+      const hash = DENDRO.credencial.hash(clave);
+      const valida = DENDRO.credencial.valida(hash);
+      ocupada = true;
+      refrescar();
+      const completa = await esperar(400 + (valida ? 0 : ESPERA_FALLO_CLAVE * (fallosClave + 1)));
+      ocupada = false;
+      cancelar = null;
+      if (!completa) consola.agregar(L(T("INTERRUMPIDO", "ambar")));
+      else if (valida) {
+        fallosClave = 0;
+        DENDRO.local.credencial(hash);
+        DENDRO.local.registrar("SISTEMA", "CREDENCIAL DE DIRECCIÓN ACEPTADA");
+        await imprimir([
+          L(T("CREDENCIAL DE DIRECCIÓN ACEPTADA.", "exito")),
+          L(T("CANAL DE DIRECCIÓN (7) Y CLASIFICADOS (8) ABIERTOS.", "textoTenue")),
+        ]);
+        ctx.redibujar();
+      } else {
+        fallosClave++;
+        DENDRO.local.registrar("SISTEMA", "INTENTO FALLIDO DE CREDENCIAL DE DIRECCIÓN");
+        await imprimir([L(T("CLAVE INCORRECTA.", "arma"))]);
+      }
+      DENDRO.sonido.beep(completa && valida ? 1200 : 300);
+      nuevoPrompt();
     }
 
     // Espera cancelable (Esc), con la latencia de 02-diseno.md §6.
@@ -283,6 +395,7 @@
     }
 
     async function ejecutar() {
+      if (modoClave) { await validarClave(); return; }
       const linea = entrada.trim();
       consola.reemplazarUltima(lineaPrompt());
       if (!linea) {
@@ -303,18 +416,19 @@
       const completa = await esperar(espera);
       ocupada = false;
       cancelar = null;
+      const desconocida = [L(T(`ORDEN DESCONOCIDA: ${linea.split(" ")[0]} · ESCRIBA `, "arma"), T("ayuda", "ambar"))];
       if (!completa) {
         consola.agregar(L(T("INTERRUMPIDO", "ambar")));
       } else if (!orden) {
-        await imprimir([L(T(`ORDEN DESCONOCIDA: ${linea.split(" ")[0]} · ESCRIBA `, "arma"), T("ayuda", "ambar"))]);
-      } else if (!orden.oculto && !SIN_FALLOS.has(orden.nombre) && rng() < estado.intensidad * 0.25) {
+        await imprimir(desconocida);
+      } else if (!orden.oculto && !SIN_FALLOS.has(orden.nombre) && orden.nombre !== "credencial" && rng() < estado.intensidad * 0.25) {
         // El sistema degradado a veces no responde o responde basura (RF-07).
         if (rng() < 0.5) consola.agregar(L(T("TIEMPO DE ESPERA AGOTADO", "arma")));
         else consola.agregar(L(T(Array.from({ length: 36 }, () => BASURA[Math.floor(rng() * BASURA.length)]).join(""), "arma")));
       } else {
         const lineas = orden.ejecutar(args, estado, ctx, sesion);
         if (sesion.limpiar) { sesion.limpiar = false; consola.limpiar(); }
-        await imprimir(lineas);
+        await imprimir(lineas === null ? desconocida : lineas);
       }
       DENDRO.sonido.beep(completa && orden ? 1200 : 300);
       nuevoPrompt();
@@ -364,6 +478,14 @@
           if (ev.key === "Escape" && cancelar) cancelar();
           return;
         }
+        if (modoClave && ev.key === "Escape") {
+          ev.preventDefault();
+          modoClave = false;
+          consola.reemplazarUltima([...PROMPT_CLAVE, { t: "CANCELADO", c: "textoTenue" }]);
+          nuevoPrompt();
+          return;
+        }
+        if (modoClave && (ev.key === "ArrowUp" || ev.key === "ArrowDown" || ev.key === "Tab")) { ev.preventDefault(); return; }
         if (ev.key === "Enter") { ev.preventDefault(); ejecutar(); }
         else if (ev.key === "Tab") { ev.preventDefault(); completar(); }
         else if (ev.key === "ArrowUp") { ev.preventDefault(); recordar(1); }

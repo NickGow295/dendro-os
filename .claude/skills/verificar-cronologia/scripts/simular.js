@@ -17,6 +17,8 @@ const archivos = [
   "data/colisiones.js",
   "data/eventos.js",
   "data/mensajes.js",
+  "data/archivo.js",
+  "data/revelaciones.js",
   "js/nucleo/prng.js",
   "js/nucleo/reloj.js",
   "js/nucleo/tau.js",
@@ -128,8 +130,8 @@ catálogo: ${cat.total} ramas · ${cat.parejas.length} parejas generadas · ${ul
 const FECHA = /20\d\d-\d\d|\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
 for (const x of ["2026-10-27T12:00", "2026-12-15T23:00"]) {
   const e = en(x);
-  const textos = [...e.registro.map((r) => r.texto), ...e.mensajesDisponibles.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]),
-    ...e.archivo.flatMap((d) => [d.titulo, ...d.texto])];
+  const textos = [...e.registro.map((r) => r.texto), ...e.mensajes.flatMap((m) => [m.asunto, m.de, ...m.cuerpo]),
+    ...e.archivo.flatMap((d) => [d.titulo, ...d.texto.map((l) => (typeof l === "string" ? l : l.direccion + " " + l.sello))])];
   const conFecha = textos.filter((s) => FECHA.test(s));
   comprobar(!conFecha.length, `${x}: textos con fecha de calendario: ${conFecha.slice(0, 3).join(" | ")}`);
 }

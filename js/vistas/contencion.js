@@ -13,7 +13,7 @@
     { id: "aislar", titulo: "AISLAR RAMA", duracion: 6200,
       descripcion: "Desconecta la rama del resto del Árbol durante el turno. Medida extrema." },
   ];
-  const MENSAJE_SUSPENSION = "M-007";
+  const MENSAJE_SUSPENSION = "D-12";   // canal de dirección: solo lo ve quien tiene credencial
 
   function crear(ctx) {
     const { ui } = ctx;
@@ -23,7 +23,7 @@
     let elegida = 0, paso = "elegir", inicio = 0, duracion = 0, resultado = null, temporizador = 0;
     let panel = null, escena = null, historial = null;
     const tierra = () => C.tierra(estado, ui.tierraSeleccionada);
-    const suspendidas = () => estado.mensajesDisponibles.some((m) => m.id === MENSAJE_SUSPENSION);
+    const suspendidas = () => DENDRO.local.credencial() && estado.mensajes.some((m) => m.id === MENSAJE_SUSPENSION);
 
     // Resultado de una acción: siempre local, siempre sin efecto medible sobre la convergencia.
     function concluir(accion, t) {
@@ -74,7 +74,7 @@
       y++;
       C.partir(ACCIONES[elegida].descripcion, panel.ancho - 2).forEach((l) => panel.escribir(1, y++, l, "textoTenue"));
       y++;
-      if (suspendidas()) panel.escribir(1, y++, "AVISO: CONTENCIONES SUSPENDIDAS (M-007)", "arma");
+      if (suspendidas()) panel.escribir(1, y++, "AVISO: CONTENCIONES SUSPENDIDAS (D-12)", "arma");
 
       const fila = panel.alto - 3;
       if (paso === "elegir") panel.escribir(1, fila, ancho ? "↑↓ ACCIÓN · ←→ OBJETIVO · ENTER EJECUTAR" : "TOQUE UNA ACCIÓN", "textoTenue");

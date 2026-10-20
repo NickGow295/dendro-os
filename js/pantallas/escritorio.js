@@ -100,6 +100,8 @@
       }
     }
 
+    const colorCohesion = (n) => (n > 0.6 ? "texto" : n > 0.2 ? "ambar" : "arma");
+
     function dibujarBarraEstado() {
       const r = P.raiz();
       const y = r.alto - 1;
@@ -113,13 +115,18 @@
         tramo(DENDRO.tau.reloj(ahora), "texto");
         tramo(`FASE ${estado.fase} ${estado.nombreFase}`, "ambar");
         tramo(` ALERTA ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
-        x = r.escribir(x, y, `RAMAS ${formatoRamas(estado.ramasAfectadas)}`, "texto");
-        r.derecha(y, `OPERADOR ${operador()} `, "textoTenue");
+        tramo(`RAMAS ${formatoRamas(estado.ramasAfectadas)}`, "texto");
+        r.escribir(x, y, `N̂ ${estado.myth.cohesion.toFixed(2)}`, colorCohesion(estado.myth.cohesion));
+        const dir = DENDRO.local.credencial();
+        r.derecha(y, `OPERADOR ${operador()} ` + (dir ? "      " : ""), "textoTenue");
+        if (dir) r.derecha(y, " ◆DIR ", "ambar");
       } else {
         tramo(DENDRO.tau.corto(ahora), "texto");
         tramo(`F${estado.fase}`, "ambar");
         tramo(` ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
-        r.escribir(x, y, formatoRamas(estado.ramasAfectadas), "texto");
+        tramo(formatoRamas(estado.ramasAfectadas), "texto");
+        x = r.escribir(x, y, `N̂${estado.myth.cohesion.toFixed(2).replace(/^0/, "")}`, colorCohesion(estado.myth.cohesion));
+        if (DENDRO.local.credencial()) r.derecha(y, "◆ ", "ambar");
       }
     }
 

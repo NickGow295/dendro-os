@@ -301,7 +301,7 @@
         // Coordenadas de la escena (empieza dos filas por debajo de la vista).
         const x = punto.x, y = punto.y - 2;
         const tocado = globos.find((g) => Math.hypot((x - g.x) * g.aspecto, y - g.y) <= g.r);
-        if (tocado && tocado.nombrada) {
+        if (tocado) {
           ui.tierraSeleccionada = tocado.codigo;
           ctx.abrir("expediente");
         }

@@ -1,4 +1,5 @@
-// Eventos fijos de la narrativa (04-lore.md §8), con su instante local. Texto en mayúsculas, estilo telegrama.
+// Eventos fijos de la narrativa (04-lore.md §7 y §8), con su instante local. Texto en mayúsculas,
+// estilo telegrama. Los que ya traen ░ son corruptos fijos: pistas que el sistema no supo guardar.
 // tipo: SISTEMA | COLISIÓN | HOSTIL | CONTENCIÓN · tierras: códigos implicados (para su línea temporal).
 window.DENDRO_DATOS = window.DENDRO_DATOS || {};
 window.DENDRO_DATOS.eventos = [
@@ -8,20 +9,32 @@ window.DENDRO_DATOS.eventos = [
     texto: "LA DIRECTORA KESH ELEVA LA ALERTA A ÁMBAR." },
   { instante: "2026-10-23T14:10", tipo: "HOSTIL", tierras: ["MYTH·4K·7A2·T3", "MYTH·4K·7A2·R9"],
     texto: "OSTRAKH DETECTA A VELMORA EN SUS RADARES. MOVILIZACIÓN GENERAL." },
+  { instante: "2026-10-24T03:33", tipo: "SISTEMA", tierras: [],
+    texto: "ECO SIN ORIGEN BAJO EL SUSTRATO · DESCARTADO COMO RUIDO." },
   { instante: "2026-10-25T03:17", tipo: "HOSTIL", tierras: ["MYTH·4K·7A2·T3", "MYTH·4K·7A2·R9"],
     texto: "OSTRAKH LANZA EL PRIMER MISIL INTERRAMA. INTERCEPTADO POR DEFENSAS RÚNICAS." },
   { instante: "2026-10-27T03:17", tipo: "COLISIÓN", tierras: ["MYTH·4K·7A2·R9", "MYTH·4K·7A2·T3"],
     texto: "CONTACTO. PRIMERA COLISIÓN CONFIRMADA: VELMORA / OSTRAKH." },
+  { instante: "2026-10-27T03:18", tipo: "SISTEMA", tierras: [],
+    texto: "…TIRÓN ░░ DESDE ABAJO ░░ 0.4 PULSOS ANTES DEL CONTACTO…" },
+  { instante: "2026-10-29T07:12", tipo: "SISTEMA", tierras: [],
+    texto: "A. KESH RENUEVA CREDENCIAL DE DIRECCIÓN · NOTA: P░ST░░░A" },
   { instante: "2026-11-01T06:00", tipo: "SISTEMA", tierras: ["MYTH·4K·7A2·T3"],
     texto: "OSTRAKH DEJA DE TRANSMITIR." },
   { instante: "2026-11-05T12:00", tipo: "SISTEMA", tierras: [],
     texto: "CONVERGENCIAS EN RAMAS QUE NO ESTABAN EN RIESGO. EL PATRÓN NO ES ALEATORIO." },
+  { instante: "2026-11-08T04:40", tipo: "SISTEMA", tierras: [],
+    texto: "LECTURA ω = 1.0000i EN EL SUSTRATO · DESCARTADA COMO ERROR DE SENSOR." },
   { instante: "2026-11-15T18:20", tipo: "SISTEMA", tierras: [],
     texto: "HIPÓTESIS: ALGO EN LA BASE DEL TRONCO TIRA DE LAS RAMAS HACIA DENTRO." },
+  { instante: "2026-11-26T02:02", tipo: "SISTEMA", tierras: [],
+    texto: "INJ░RTO NO AUTORIZADO EN EL NUDO MYTH·4K·7A2" },
   { instante: "2026-11-28T19:26", tipo: "HOSTIL", tierras: ["MYTH·7Y·A4R·L7", "MYTH·7Y·A4R·G2"],
     texto: "SOLENNE DECLARA HEREJÍA A LA «TIERRA SIN DIOSES» Y PREPARA LA LANZA SOLAR." },
   { instante: "2026-12-02T00:00", tipo: "SISTEMA", tierras: [],
     texto: "FALLOS INTERMITENTES EN LA ESTACIÓN RAÍZ. IRREGULARIDADES EN EL META-TIEMPO τ." },
+  { instante: "2026-12-03T05:05", tipo: "SISTEMA", tierras: [],
+    texto: "░░ R. ESC░RDA ░░ SARMIENTO ░░ BAJA τ 6913 ░░" },
   { instante: "2026-12-09T21:05", tipo: "SISTEMA", tierras: [],
     texto: "COHESIÓN N̂ DE MYTH POR DEBAJO DE 0.60. PÉRDIDA DE SOPORTE EN LA CORTEZA." },
   { instante: "2026-12-10T06:00", tipo: "SISTEMA", tierras: ["MYTH·01", "MYTH·ZZ"],
@@ -29,5 +42,7 @@ window.DENDRO_DATOS.eventos = [
   { instante: "2026-12-14T23:58", tipo: "COLISIÓN", tierras: ["MYTH·01", "MYTH·ZZ"],
     texto: "CONTACTO ORIGEN / POSTRERA. DESGARRO EN LA BASE DE MYTH. N̂ PARTIDA A LA MITAD." },
   { instante: "2026-12-15T22:00", tipo: "SISTEMA", tierras: [],
-    texto: "ÚLTIMA TRANSMISIÓN DE LA DIRECTORA KESH (VER COMUNICACIONES)." },
+    texto: "ÚLTIMA TRANSMISIÓN DE LA DIRECTORA KESH." },
+  { instante: "2026-12-16T00:00", tipo: "SISTEMA", tierras: [],
+    texto: "FIRMA ω = 1.0000i EN LA BASE DE MYTH." },
 ];

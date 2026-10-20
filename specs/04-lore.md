@@ -109,7 +109,7 @@ DENDRO lo sabía y lo consintió, porque las ramas jóvenes parecían estables. 
 | **Maresa Thul** · la atlante | Última ingeniera de mareas de Thul, la ciudad hundida de MYTH. Sus mareógrafos leen el oleaje del Bulk mejor que los sensores de DENDRO | Orgullosa, directa, sin paciencia para las jerarquías; respeta a quien trabaja | Detecta antes que nadie el tirón desde abajo. Sostiene la base del tronco cuando Origen se suelta; cae el 12-13 |
 | **Ilvane** · la sacerdotisa | Sacerdotisa del Primer Rito, la magia más antigua de MYTH: mueve el maná con un rito y no con la voluntad sola. Su rito ata a los cinco entre sí, al tronco y a cada injerto topológico de las ramas jóvenes | Serena, paciente; la conciencia del grupo. Se opuso a los saltos desde el segundo y los acompañó igual | Es la última en pie. Su rito es, en la práctica, lo que queda de N̂. Cae a las 14:00 del 16/12: el colapso es ella soltando |
 
-Los instantes de caída de cada guardián están fijados en `data/myth.js` (no salen de N̂) para que cuadren con los mensajes. El expediente de MYTH (con credencial) los muestra como `EN PIE` / `CAÍDO EN τ …`.
+Los instantes de caída de cada guardián están fijados en `data/myth.js` (no salen de N̂) para que cuadren con los mensajes: Calcina 12-09 21:05 (el cruce de 0.60), Maresa 12-13 18:00, Hisame 12-15 21:00, Odalys 12-16 10:00, Ilvane 12-16 14:00. Los siete saltos, en CLAS-RAM-J: τ 5120.402, 5511.090, 6004.733, 6655.218, 6990.517, 7102.846 y 7388.991. El expediente de MYTH (con credencial) los muestra como `EN PIE` / `CAÍDO EN τ …`.
 
 ## 3. El Injertador
 

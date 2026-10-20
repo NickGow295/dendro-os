@@ -80,6 +80,13 @@ window.DENDRO_CONFIG = {
     },
   },
 
+  // Credencial de dirección (RF-18): solo su hash, sha256(sal + clave normalizada), en hexadecimal.
+  // Para cambiar la clave, generar el hash nuevo (ver README) y pegarlo aquí.
+  acceso: {
+    sal: "DENDRO·DIR·",
+    hashDireccion: "be33837e63a7383d21423e19df31635751af704ffacd848cf213f029e4f86dda",
+  },
+
   // Rejilla de caracteres del tubo (prototipo opción B).
   pantalla: {
     filas: 36,              // filas objetivo en escritorio

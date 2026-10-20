@@ -431,11 +431,41 @@
     };
   }
 
+  // ── Mensajes, archivo y revelaciones (§4.7) ───────────────────────────────
+  // Lo emitido hasta t. Qué se puede leer lo decide la vista con la credencial, no el motor.
   function mensajes(t) {
     return (datos().mensajes || [])
       .map((m) => ({ ...m, instante: aMs(m.instante) }))
       .filter((m) => m.instante <= t)
       .map((m) => ({ ...m, tau: DENDRO.tau.de(m.instante) }));
+  }
+
+  function archivo(t) {
+    return (datos().archivo || []).filter((d) => !d.desde || aMs(d.desde) <= t).map((d) => {
+      const doc = { ...d };
+      if (d.desde) doc.revisado = DENDRO.tau.de(aMs(d.desde));
+      if (d.revision && aMs(d.revision.desde) <= t) {
+        doc.rev = d.revision.rev;
+        doc.revisado = DENDRO.tau.de(aMs(d.revision.desde));
+        doc.texto = [...d.texto, ...d.revision.texto];
+      }
+      delete doc.revision;
+      return doc;
+    });
+  }
+
+  function hitosDe(t) {
+    const r = datos().revelaciones || {}, hitos = {};
+    for (const [clave, instante] of Object.entries(r)) hitos[clave] = t >= aMs(instante);
+    return hitos;
+  }
+
+  // Silueta del Injertador (lore §3.1): de 0.15 al aparecer a 1 en el último minuto antes del colapso.
+  function siluetaDe(t) {
+    const r = datos().revelaciones || {}, { tf } = hitos();
+    if (!r.silueta || t < aMs(r.silueta) || t >= tf) return { visible: false, opacidad: 0 };
+    const desde = aMs(r.silueta), hasta = tf - DENDRO.reloj.MINUTO;
+    return { visible: true, opacidad: 0.15 + 0.85 * limitar((t - desde) / (hasta - desde), 0, 1) };
   }
 
   // ── Estado de un instante ─────────────────────────────────────────────────
@@ -468,7 +498,10 @@
         const nodo = cat.porCodigo[c];
         if (!nodo || nodo.baja) return null;
         const par = b.deRama[c] ? porId[b.deRama[c].id] : null;
-        memo.set(c, tierraEn(nodo, par, t, colapso, cohesion));
+        const eventos = nodo.raiz
+          ? registro.filter((ev) => ev.origen === "fijo" && /MYTH|N̂/.test(ev.texto)).reverse()
+          : registro.filter((ev) => ev.origen !== "ruido" && ev.tierras.includes(c)).reverse();
+        memo.set(c, { ...tierraEn(nodo, par, t, colapso, cohesion), eventos });
       }
       return memo.get(c);
     };
@@ -496,8 +529,10 @@
       parejaPrincipal: parejas.length ? parejaPrincipal(parejas) : null,
       ataques, registro,
       armas: datos().armas || {},
-      archivo: datos().archivo || [],
-      mensajesDisponibles: mensajes(t),
+      mensajes: mensajes(t),
+      archivo: archivo(t),
+      hitos: hitosDe(t),
+      silueta: siluetaDe(t),
       modulosCaidos,
     };
   }

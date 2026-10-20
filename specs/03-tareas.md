@@ -109,13 +109,15 @@
 
 ## Fase 7 — Historia: canales, archivo, credencial y revelaciones
 
-- [ ] **T7.1** `sha256.js`, `config.acceso`, `DENDRO.local.credencial()`; orden `credencial` con eco `*`, `credencial cerrar` / `revocar`; `◆DIR` en la barra. *(RF-18)*
-- [ ] **T7.2** `data/mensajes.js` con canales: G-01…G-09, G-X y D-01…D-17 (`04-lore.md §9`), integrando los antiguos M-001…M-008. *(RF-17)*
-- [ ] **T7.3** V7 COMUNICACIONES con dos pestañas, canal de dirección sellado y `visibleSinCredencial`. *(RF-17)*
-- [ ] **T7.4** `data/archivo.js` ampliado (`04-lore.md §10`): cabeceras de documentación interna, manuales y procedimientos, clasificados con `desde`, fragmentos solo con credencial, pista de la clave en PROC-ADM-01. *(RF-17, RF-18)*
-- [ ] **T7.5** V8 ARCHIVO con carpetas, cabecera, sellado y clasificados ocultos hasta su emisión. *(RF-17)*
-- [ ] **T7.6** `data/revelaciones.js` y `Estado.hitos`; eventos fijos nuevos y corruptos fijos (`04-lore.md §7–8`); órdenes ocultas `omega i`, `sarmiento`, `escarda`, `myth`, `injertador` y `n-hat` con la N̂ de MYTH. *(RF-17)*
-- [ ] **T7.7** EXPEDIENTE: fichas cortas de ramas generadas y ficha de MYTH con cohesión y guardianes sellados. *(RF-05, RF-16)*
+- [x] **T7.1** `sha256.js`, `config.acceso`, `DENDRO.local.credencial()`; orden `credencial` con eco `*`, `credencial cerrar` / `revocar`; `◆DIR` en la barra. *(RF-18)*
+- [x] **T7.2** `data/mensajes.js` con canales: G-01…G-09, G-X y D-01…D-17 (`04-lore.md §9`), integrando los antiguos M-001…M-008. *(RF-17)*
+- [x] **T7.3** V7 COMUNICACIONES con dos pestañas, canal de dirección sellado y `visibleSinCredencial`. *(RF-17)*
+- [x] **T7.4** `data/archivo.js` ampliado (`04-lore.md §10`): cabeceras de documentación interna, manuales y procedimientos, clasificados con `desde`, fragmentos solo con credencial, pista de la clave en PROC-ADM-01. *(RF-17, RF-18)*
+- [x] **T7.5** V8 ARCHIVO con carpetas, cabecera, sellado y clasificados ocultos hasta su emisión. *(RF-17)*
+- [x] **T7.6** `data/revelaciones.js` y `Estado.hitos`; eventos fijos nuevos y corruptos fijos (`04-lore.md §7–8`); órdenes ocultas `omega i`, `sarmiento`, `escarda`, `myth`, `injertador` y `n-hat` con la N̂ de MYTH. *(RF-17)*
+- [x] **T7.7** EXPEDIENTE: fichas cortas de ramas generadas y ficha de MYTH con cohesión y guardianes sellados. *(RF-05, RF-16)*
+
+> Notas: `Estado.mensajesDisponibles` pasa a `Estado.mensajes`. En COMUNICACIONES y ARCHIVO, ←/→ cambia de canal o carpeta (Tab está reservado). Las órdenes ocultas que esperan su hito responden `ORDEN DESCONOCIDA`. El aviso de contenciones suspendidas de CONTENCIÓN remite a D-12 y solo se ve con credencial; el resto de CONTENCIÓN llega con T8.8. PROC-FIR-02 pasa de la rev. 3 a la 4 en vivo (10-30 09:00).
 
 **Verificación:** recorrer el calendario de revelaciones con `?fecha=` en cada hito, con y sin credencial; la clave del lore abre el canal y los clasificados, y siguen abiertos al recargar.
 
