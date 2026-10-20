@@ -37,40 +37,44 @@ La página **cuenta una historia en tiempo real**: desde el 20 de octubre de 202
 - Pide un "ID de operador" (cualquier texto). No hay contraseña real ni se guarda nada sensible.
 - El ID se recuerda en el navegador y aparece en los registros ("OPERADOR NTT-0451 CONECTADO").
 
-### RF-04 Escritorio de módulos
-- Tras el acceso hay un menú principal con los módulos, navegable con teclado (flechas, números 1–8 como atajo principal, teclas F1–F4 y F6–F9) y con ratón. F5, F11 y F12 no se interceptan para no romper el navegador.
+### RF-04 Escritorio de vistas
+- La interfaz es **principalmente visual**: diagramas, globos, gráficas y paneles de datos, no una consola de texto. La terminal es una vista secundaria.
+- Tras el acceso se abre directamente la vista **COLISIÓN** dentro del marco del escritorio: una barra superior con las vistas, la vista activa en el centro y una barra de estado permanente abajo.
+- Navegación con teclado (1–9 y 0 abren las vistas en el orden de RF-05; F1–F4 y F6–F9 las ocho primeras; flechas y Enter dentro de cada vista; Esc vuelve a COLISIÓN), con ratón y táctil. F5, F11 y F12 no se interceptan para no romper el navegador.
 - Barra de estado permanente: fecha y hora de la agencia, fase actual, ramas en colisión, nivel de alerta.
 
-### RF-05 Módulos
-| ID | Módulo | Qué permite |
-| --- | --- | --- |
-| M1 | TERMINAL | Escribir comandos (`ayuda`, `estado`, `escanear`, `examinar <id>`, `colisiones`, `aislar <id>`, `registro`, `limpiar`, `salir`, más comandos ocultos). |
-| M2 | MAPA DEL ÁRBOL | Ver el Árbol: tronco y ramas en blanco, tierras en azul, ataques y misiles en rojo. Seleccionar una tierra abre su expediente. |
-| M3 | EXPEDIENTES | Ficha de cada tierra: designación, nombre, firma ω, régimen mágico, planos anexos, nivel tecnológico, postura, estabilidad, y su **línea temporal** (eventos fechados hasta hoy). |
-| M4 | MONITOR DE COLISIONES | Pares de ramas convergiendo, Δω cayendo, tiempo estimado al contacto, estado (aproximación, contacto, hostilidades, aniquilación). |
-| M5 | REGISTRO DE INCIDENTES | Bitácora del sistema con todos los eventos hasta la fecha actual, del más reciente al más antiguo. |
-| M6 | COMUNICACIONES | Mensajes de agentes de campo y de las propias tierras que se desbloquean por fecha. |
-| M7 | ARCHIVO | Documentos clasificados del lore (protocolos, el informe del Árbol, manual del operador). |
-| M8 | CONTENCIÓN | Acciones del operador (reforzar aislante, sellar puerta, aislar rama). Dan respuesta visual y quedan en el registro local, pero **no alteran la cronología global**. |
+### RF-05 Vistas
+| Tecla | ID | Vista | Qué muestra / permite |
+| --- | --- | --- | --- |
+| 1 | V1 | COLISIÓN | **Vista principal.** Los dos globos de la pareja más urgente, la distancia entre ellos, Δω cayendo, días al contacto y estado. Si la pareja es hostil, arcos rojos de misiles entre los globos. Selector de pareja (←/→) para ver cualquier otra. |
+| 2 | V2 | ÁRBOL | El diagrama completo del Árbol: tronco y ramas en blanco, tierras en azul, ataques en rojo, grietas según la fase. Seleccionar una tierra abre su expediente. |
+| 3 | V3 | MONITOR | Cuadrícula de las 24 tierras en miniatura (globo + estado + estabilidad) y la gráfica exponencial de ramas afectadas con el día de hoy marcado y la proyección discontinua; el valor final y la fecha del colapso aparecen como `???` corruptos hasta la fase CRÍTICO. |
+| 4 | V4 | OSCILOSCOPIO | La onda de la firma ω de cada rama de la pareja seleccionada y su interferencia `cos(Δω·t)`: los latidos se alargan a medida que las ramas se acercan. |
+| 5 | V5 | EXPEDIENTE | Globo de la tierra, paneles de datos (designación, nombre, firma ω, régimen mágico, planos anexos, tecnología, postura), barra de estabilidad y **línea temporal dibujada** con sus eventos hasta hoy. |
+| 6 | V6 | REGISTRO | Bitácora del sistema con todos los eventos hasta hoy, del más reciente al más antiguo, con filtros. |
+| 7 | V7 | COMUNICACIONES | Mensajes de agentes de campo y de las propias tierras que se desbloquean por fecha. |
+| 8 | V8 | ARCHIVO | Documentos clasificados del lore (protocolos, el informe del Árbol, manual del operador). |
+| 9 | V9 | CONTENCIÓN | Acciones del operador (reforzar aislante, sellar puerta, aislar rama). Dan respuesta visual y quedan en el registro local, pero **no alteran la cronología global**. |
+| 0 | V0 | TERMINAL | Vista secundaria: comandos (`ayuda`, `estado`, `escanear`, `examinar <id>`, `colisiones`, `aislar <id>`, `registro`, `limpiar`, `salir`, más comandos ocultos). `examinar` y `colisiones` pueden abrir la vista correspondiente. |
 
 ### RF-06 Conflicto entre tierras
 - Algunas tierras (no todas) al acercarse a su pareja de colisión **intentan destruirla** para sobrevivir.
 - Los ataques empiezan en los últimos días de la aproximación (antes del contacto) y siguen durante las hostilidades.
-- Esto se ve en el mapa (trayectorias de misiles y armas en rojo), en el monitor de colisiones (estado "HOSTILIDADES") y en los registros y expedientes.
+- Esto se ve en COLISIÓN (arcos rojos de misiles entre los globos e impactos en el globo atacado), en el ÁRBOL (trayectorias rojas), en el MONITOR (estado "HOSTILIDADES") y en el registro y los expedientes.
 - Otras tierras eligen evacuar, aislarse, negociar o simplemente no se enteran.
 
 ### RF-07 Degradación progresiva
 A medida que avanza la fase, el sistema se deteriora:
-- Más frecuencia de glitches visuales (desplazamiento de líneas, parpadeos, caracteres corruptos).
+- Más frecuencia de glitches visuales (desplazamiento de líneas, parpadeos, caracteres corruptos), también en los diagramas: temblor de los trazos, cortes y desfases.
 - Texto corrupto aleatorio en registros (determinista por día).
-- Módulos que se caen o responden con errores a partir de umbrales.
+- Vistas que se caen o responden con errores a partir de umbrales.
 - Alarmas sonoras más frecuentes (si el sonido está activado).
 - La terminal tarda más en responder: latencia deliberada que crece con la fase.
 - El zumbido del transformador y el ventilador del equipo suben de volumen con la intensidad (si el sonido está activado).
 
 ### RF-08 Colapso final (16 de diciembre)
 - Justo después del encendido del monitor (sin arranque previo) aparece un **mensaje de error fatal** a pantalla completa: franja de título en ámbar con texto oscuro y cuerpo en texto blanco sobre fondo oscuro con marco ámbar (contraste de RNF-03).
-- Tras el error, el sistema puede mostrar un arranque fallido, un mapa con el Árbol desintegrándose y un último mensaje.
+- Tras el error, el sistema puede mostrar un arranque fallido, el diagrama del Árbol desintegrándose y un último mensaje.
 - Configurable: el texto del error final (con el número de ramas tomado de la configuración, no escrito a mano) y los comandos que la terminal acepta después.
 - Los días posteriores al colapso (p. ej. 25/12) la pantalla final muestra además cuántos días han pasado desde el colapso.
 
@@ -95,15 +99,21 @@ A medida que avanza la fase, el sistema se deteriora:
 - Si WebGL no está disponible, se usan los efectos CSS de respaldo y la página sigue funcionando sin errores.
 - Todos los parámetros se ajustan en `config.efectos` y se pueden desactivar.
 
+### RF-13 Globos procedurales
+- Cada tierra se dibuja como un **globo de alambre** (proyección ortográfica, meridianos y paralelos) con **continentes propios** generados con su semilla mediante ruido sobre la esfera: el mismo globo en cada carga y en cada navegador.
+- Solo **Tierra Gris** usa los continentes de nuestra Tierra (máscara de baja resolución en `data/`).
+- Los globos giran despacio. Tierra y contornos en azul (`tierra`); impactos, cráteres y armas en rojo (`arma`).
+- El estado se ve en el globo: estable, aproximación (halo), contacto, daños crecientes en hostilidades, y desenlace (aniquilada: el globo se fragmenta y se apaga; fusionada: los dos globos se funden en uno; superviviente: un globo dañado). Las tierras "inestables" deforman su contorno.
+
 ## 4. Requisitos no funcionales
 
 - **RNF-01 Sin dependencias ni compilación**: HTML, CSS y JavaScript puros. Se abre con doble clic en `index.html` y también funciona en GitHub Pages.
-- **RNF-02 Rendimiento**: 60 fps en el mapa en un portátil común; los efectos CRT no deben bloquear la escritura.
+- **RNF-02 Rendimiento**: 60 fps en las vistas visuales (incluida la cuadrícula de 24 globos) en un portátil común; los efectos CRT no deben bloquear la escritura.
 - **RNF-03 Accesibilidad**: respetar `prefers-reduced-motion` (desactiva parpadeos fuertes y glitches); opción en config para desactivar efectos; contraste suficiente del texto blanco sobre el fondo.
 - **RNF-04 Responsivo**: usable en móvil (sin teclado físico: menú táctil y botones de comando rápidos).
 - **RNF-05 Sonido**: generado con Web Audio, nunca automático; se activa tras la primera interacción (el encendido del monitor, RF-11) y se puede silenciar. Incluye el ambiente del equipo: zumbido del transformador y ventilador.
 - **RNF-06 Determinismo**: todo lo "aleatorio" usa un PRNG con semilla derivada de la fecha.
-- **RNF-07 Originalidad**: la agencia, su símbolo, terminología y personajes son originales. No usar nombres, logos ni elementos de franquicias existentes.
+- **RNF-07 Originalidad**: la agencia, su símbolo, terminología y personajes son originales. No usar nombres, logos ni elementos de franquicias existentes. **Todo el diseño visual es propio de DENDRO**: no imitar interfaces, logos, tipografías de marca ni rótulos de películas o series.
 
 ## 5. Criterios de aceptación globales
 
@@ -113,9 +123,13 @@ A medida que avanza la fase, el sistema se deteriora:
 - [ ] El número de ramas en colisión nunca baja de un día al siguiente y crece de forma exponencial.
 - [ ] Con `?fecha=2026-12-16` aparece el error fatal al entrar.
 - [ ] Cambiar `colores.ambar` en `config.js` cambia la interfaz entera.
-- [ ] En el mapa: ramas blancas, tierras azules, armas rojas.
+- [ ] En el ÁRBOL: ramas blancas, tierras azules, armas rojas.
+- [ ] Tras el acceso se abre COLISIÓN; con `?fecha=2026-10-25` muestra Velmora y Ostrakh acercándose con arcos rojos de Ostrakh hacia Velmora.
+- [ ] Cada tierra tiene un globo distinto, idéntico en cada carga; Tierra Gris muestra los continentes de nuestra Tierra.
+- [ ] Los diagramas y globos pasan por el shader (se curvan, brillan y dejan estela como el texto).
+- [ ] En OSCILOSCOPIO, los latidos de la interferencia se alargan día a día hasta desaparecer en el contacto.
 - [ ] Al menos 4 tierras son hostiles y atacan a su pareja en algún momento.
-- [ ] Todos los módulos se pueden usar solo con teclado.
+- [ ] Todas las vistas se pueden usar solo con teclado.
 - [ ] Recargar el mismo día da exactamente el mismo estado.
 - [ ] Sin WebGL (o con `efectos.webgl: false`) la página funciona con los efectos CSS de respaldo y sin errores en consola.
 - [ ] La terminal tarda visiblemente más en responder en fase 4 que en fase 1.

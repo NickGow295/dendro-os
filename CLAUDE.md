@@ -17,9 +17,10 @@ Si una tarea contradice la spec, **no improvisar**: señalarlo y proponer el cam
 - **Sin compilación ni dependencias**: HTML, CSS y JS puros. Debe funcionar abriendo `index.html` con doble clic (`file://`). Por eso: `<script>` clásicos y espacio de nombres `window.DENDRO`, **nunca** `import`/`export`.
 - **Colores, logo, fechas, textos de la agencia y efectos solo en `config.js`.** Ningún color literal en CSS o JS: usar variables CSS (`var(--ambar)`) o `DENDRO_CONFIG.colores`.
 - **Contenido del mundo solo en `data/`.**
+- **Las vistas solo usan la API de regiones** (`escribir`, `caja`, `region`, `vectores()`, colores por nombre); nunca tocan el canvas ni el DOM del tubo.
 - **La cronología es una función pura de la fecha** (`cronologia.js`). Nada de la historia global depende de `localStorage`, `Math.random()` ni de visitas previas. Aleatoriedad = PRNG con semilla de la fecha.
 - **Paleta**: interfaz ámbar, texto blanco, tierras azules, ramas del árbol blancas, armas y hostilidades rojas. Nunca texto blanco sobre fondo ámbar (sobre ámbar va `--fondo`).
-- **Originalidad**: no usar nombres, logos, personajes ni terminología de franquicias existentes (Marvel, etc.).
+- **Originalidad**: no usar nombres, logos, personajes ni terminología de franquicias existentes (Marvel, etc.), ni imitar interfaces o rótulos de películas o series.
 - Respetar `prefers-reduced-motion`. Audio solo tras interacción del usuario.
 - Textos de la interfaz en español.
 

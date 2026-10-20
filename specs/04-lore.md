@@ -75,6 +75,26 @@ Designación hexadecimal, nombre, firma ω, régimen mágico (de la sección 4 d
 
 > En las tierras "Inestable" el expediente muestra la ω con dígitos que oscilan (decorativo; el valor de datos es fijo).
 
+### 2.1 Aspecto de los globos
+
+Cada globo es procedural con semilla `hash(id)` (ver `02-diseno.md §7.4`): nada copiado de ningún mapa salvo **Tierra Gris**, que usa los continentes de nuestra Tierra. `mar` es la fracción de océano (por defecto 0.55) y `rugosidad` la escala del ruido (1 = normal; más alto, costas más fragmentadas). Solo se listan las que se apartan del valor por defecto.
+
+| ID | Nombre | mar | rugosidad | Otros | Por qué |
+| --- | --- | --- | --- | --- | --- |
+| B-0x02 | Ostrakh | 0.45 | 0.8 | | Masas continentales compactas, militarizadas |
+| B-0x05 | Ceniza | 0.30 | 0.9 | | Desiertos de una guerra antigua |
+| B-0x06 | Arbórea | 0.40 | 1.2 | | Bosques continentales |
+| B-0x07 | Nadir | 0.85 | 1.0 | | Civilización oceánica |
+| B-0x08 | Kaelum | 0.80 | 2.0 | | Islas flotantes |
+| B-0x09 | Tierra Gris | — | — | máscara real | Equivalente a la nuestra |
+| B-0x0C | Vael | 0.50 | 0.7 | | Valles agrarios amplios |
+| B-0x0D | Umbra | 0.50 | 1.4 | | Costas desgarradas por el inframundo abierto |
+| B-0x13 | Esmeril | 0.50 | 1.6 | inestable | Constantes a la deriva |
+| B-0x15 | Ithaka | 0.72 | 1.8 | | Archipiélagos |
+| B-0x16 | Nimbo | 0.65 | 1.3 | | Tierras bajo nubes |
+| B-0x17 | Origen | 0.50 | 1.0 | | La primera rama |
+| B-0x18 | Postrera | 0.60 | 1.5 | inestable | No debería existir |
+
 ## 3. Parejas de colisión
 
 Fechas de contacto con espaciado decreciente (crecimiento exponencial). Al menos 5 parejas hostiles. Δω₀ se calcula como `|ω_a − ω_b|` (aquí solo como referencia).
