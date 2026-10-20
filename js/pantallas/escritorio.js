@@ -53,7 +53,7 @@
     };
   }
 
-  function crear({ estado }) {
+  function crear({ estado, salir }) {
     const P = DENDRO.pantalla;
     const ui = { parejaSeleccionada: estado.parejaPrincipal, tierraSeleccionada: null };
     let activa = null, entradaActiva = null, transicion = -Infinity, reloj = 0, pestanas = [];
@@ -63,6 +63,7 @@
       estado, ui,
       region: regionVista,
       abrir,
+      salir: salir || (() => {}),
       redibujar() { const reg = regionVista(); reg.limpiar(); if (activa) activa.dibujar(reg); },
     };
 
@@ -70,6 +71,7 @@
       const entrada = CATALOGO.find((c) => c.id === id);
       if (!entrada) return;
       if (activa && activa.detener) activa.detener();
+      if (entradaActiva) DENDRO.sonido.beep(entrada.id === entradaActiva.id ? 660 : 990);
       entradaActiva = entrada;
       const def = DENDRO.vistas.obtener(id);
       activa = def ? def.crear(ctx) : enConstruccion(entrada);
@@ -149,6 +151,7 @@
       iniciar() {
         abrir("colision");
         reloj = setInterval(dibujarBarraEstado, 1000);
+        if (estado.fase >= 3) setTimeout(() => DENDRO.sonido.alarma(estado.fase >= 4 ? 6 : 3), 600);
       },
       dibujar,
       vectores(raiz, ahora) {

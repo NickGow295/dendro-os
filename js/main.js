@@ -4,7 +4,6 @@
 
   const cfg = () => window.DENDRO_CONFIG;
   const $ = (id) => document.getElementById(id);
-  const TECLAS_IGNORADAS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock", "Tab", "F5", "F11", "F12"]);
 
   const fecha = DENDRO.reloj.fechaHoy();
   const estadoDia = DENDRO.cronologia.calcularEstado(fecha);
@@ -27,11 +26,15 @@
   }
 
   function irArranque() {
-    mostrar(DENDRO.arranque.crear({ fecha, alTerminar: parametro("prueba") === "1" ? irPrueba : irEscritorio }));
+    mostrar(DENDRO.arranque.crear({ fecha, estado: estadoDia, alTerminar: parametro("prueba") === "1" ? irPrueba : irAcceso }));
+  }
+
+  function irAcceso() {
+    mostrar(DENDRO.acceso.crear({ alTerminar: irEscritorio }));
   }
 
   function irEscritorio() {
-    mostrar(DENDRO.escritorio.crear({ estado: estadoDia }));
+    mostrar(DENDRO.escritorio.crear({ estado: estadoDia, salir: () => DENDRO.monitor.apagar() }));
   }
 
   function irPrueba() {
@@ -105,13 +108,16 @@
   }
 
   function alTeclear(ev) {
-    if (ev.ctrlKey || ev.metaKey || ev.altKey || TECLAS_IGNORADAS.has(ev.key)) return;
-    if (ev.target && ev.target.id === "boton-encendido" && (ev.key === "Enter" || ev.key === " ")) return;
+    if (DENDRO.teclado.ignorable(ev)) return;
+    // Los botones del marco se activan con Enter/Espacio por sí solos.
+    if (ev.target && ev.target.closest && ev.target.closest("button") && (ev.key === "Enter" || ev.key === " ")) return;
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") {
       ev.preventDefault();
       DENDRO.monitor.encender();
     } else if (estado !== "apagando" && actual && actual.tecla) {
+      // El campo oculto suena por su cuenta al cambiar (también con el teclado del móvil).
+      if (!ev.repeat && !DENDRO.teclado.esCampo(ev.target)) DENDRO.sonido.tecla();
       actual.tecla(ev);
     }
   }
@@ -120,6 +126,7 @@
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") { DENDRO.monitor.encender(); return; }
     if (estado === "apagando" || !actual || !actual.toque) return;
+    DENDRO.sonido.tecla();
     actual.toque(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
   }
 
@@ -134,8 +141,15 @@
     boton.setAttribute("aria-label", estado === "apagado" ? "Encender el monitor" : "Apagar el monitor");
     boton.setAttribute("aria-pressed", String(estado !== "apagado"));
     // El contenido aparece mientras el fósforo se calienta, como en un tubo real.
-    if (estado === "encendiendo") irArranque();
-    if (estado === "apagando" && actual && actual.detener) actual.detener();
+    if (estado === "encendiendo") {
+      DENDRO.sonido.encender();
+      irArranque();
+    }
+    if (estado === "apagando") {
+      DENDRO.sonido.apagar();
+      DENDRO.teclado.soltar();
+      if (actual && actual.detener) actual.detener();
+    }
     if (estado === "apagado") mostrar(null);
   }
 
@@ -178,6 +192,8 @@
     DENDRO.tema.aplicar();
     rotular();
     DENDRO.crt.fijarIntensidad(estadoDia.intensidad);
+    DENDRO.sonido.fijarIntensidad(estadoDia.intensidad);
+    DENDRO.teclado.iniciar($("entrada"));
     if (cfg().debug.mostrarPanelDebug || parametro("debug") === "1") mostrarPanelDebug();
     if (movimientoReducido) document.documentElement.classList.add("movimiento-reducido");
     const ef = cfg().efectos, clases = document.documentElement.classList;
@@ -211,6 +227,13 @@
 
     DENDRO.monitor.alCambiar(alCambiarMonitor);
     $("boton-encendido").addEventListener("click", alternarEncendido);
+    const botonSonido = $("boton-sonido");
+    const marcarSonido = (activo) => {
+      botonSonido.setAttribute("aria-pressed", String(activo));
+      botonSonido.setAttribute("aria-label", activo ? "Silenciar" : "Activar sonido");
+    };
+    marcarSonido(DENDRO.sonido.activado());
+    botonSonido.addEventListener("click", () => marcarSonido(DENDRO.sonido.alternar()));
     document.addEventListener("keydown", alTeclear);
     $("vidrio").addEventListener("pointerdown", alPulsarPantalla);
     $("vidrio").addEventListener("pointermove", alMoverPuntero);

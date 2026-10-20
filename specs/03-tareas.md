@@ -47,11 +47,11 @@
 ## Fase 2 — Flujo de pantallas y escritorio
 
 - [x] **T2.1** `escritor.js` (consola desplazable + máquina de escribir saltable); los marcos los da `region.caja()`.
-- [ ] **T2.2** Pantalla de arranque variable por fase; saltable si ya se vio hoy. *(RF-02)*
-- [ ] **T2.3** Pantalla de acceso con ID de operador en `localStorage`; campo de entrada oculto para el teclado móvil. *(RF-03, RNF-04)*
-- [ ] **T2.4** `escritorio.js` + `teclado.js`: marco con pestañas de vistas y barra de estado, registro `DENDRO.vistas`, contrato de vista (`02-diseno.md §6`), estado de interfaz compartido, teclas 1–9/0/F, Esc → COLISIÓN, táctil, barrido al cambiar de vista. *(RF-04, RNF-04)*
-- [ ] **T2.5** `sonido.js`: tecla, beep, alarma; ambiente de transformador + ventilador según intensidad; sonidos de encendido/apagado; activación tras el encendido; botón silenciar. *(RNF-05, RF-07)*
-- [ ] **T2.6** Apagado del monitor al cerrar sesión (`salir` o botón), con resplandor residual y vuelta a MONITOR APAGADO. *(RF-11)*
+- [x] **T2.2** Pantalla de arranque variable por fase; saltable si ya se vio hoy. *(RF-02)*
+- [x] **T2.3** Pantalla de acceso con ID de operador en `localStorage`; campo de entrada oculto para el teclado móvil. *(RF-03, RNF-04)*
+- [x] **T2.4** `escritorio.js` + `teclado.js`: marco con pestañas de vistas y barra de estado, registro `DENDRO.vistas`, contrato de vista (`02-diseno.md §6`), estado de interfaz compartido, teclas 1–9/0/F, Esc → COLISIÓN, táctil, barrido al cambiar de vista. *(RF-04, RNF-04)*
+- [x] **T2.5** `sonido.js`: tecla, beep, alarma; ambiente de transformador + ventilador según intensidad; sonidos de encendido/apagado; activación tras el encendido; botón silenciar. *(RNF-05, RF-07)*
+- [x] **T2.6** Apagado del monitor al cerrar sesión (`salir` o botón), con resplandor residual y vuelta a MONITOR APAGADO. *(RF-11)* — el escritorio expone ; el comando  lo conecta T4.5.
 
 **Verificación:** recorrer encendido → arranque → acceso → escritorio (vistas vacías con su título) → apagado solo con teclado en tres fechas distintas; el ambiente suena más fuerte en la fecha más tardía.
 

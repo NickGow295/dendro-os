@@ -256,3 +256,30 @@ body {
   padding: 6px 8px; font: 11px/1.35 monospace; color: var(--exito);
   background: color-mix(in srgb, var(--fondo) 88%, transparent); border: 1px solid var(--ambar-tenue);
 }
+
+/* Interruptor de sonido: palanca basculante con su serigrafía. */
+.boton-sonido {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 4px; border: 0; background: none; cursor: pointer; color: var(--rotulo);
+  font: 700 clamp(8px, 0.8vw, 10px) var(--fuente-serigrafia); letter-spacing: 0.2em;
+}
+.boton-sonido .interruptor {
+  position: relative; width: 30px; height: 16px; border-radius: 3px;
+  background: color-mix(in srgb, var(--fondo) 70%, var(--carcasa));
+  box-shadow: inset 0 1px 3px var(--sombra), 0 1px 0 var(--relieve);
+}
+.boton-sonido .interruptor::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 12px; border-radius: 2px;
+  background: linear-gradient(var(--carcasa-luz), var(--carcasa));
+  box-shadow: 0 1px 2px var(--sombra);
+  transition: transform 90ms steps(2);
+}
+.boton-sonido[aria-pressed="true"] .interruptor::after { transform: translateX(13px); }
+.boton-sonido[aria-pressed="true"] { color: var(--ambar); }
+.boton-sonido:focus-visible { outline: 2px solid var(--ambar); outline-offset: 3px; }
+
+/* Campo oculto que recibe el texto (y abre el teclado en móvil). 16px evita el zoom de iOS. */
+.entrada-oculta {
+  position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0;
+  font-size: 16px; border: 0; padding: 0; pointer-events: none;
+}

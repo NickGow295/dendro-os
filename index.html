@@ -32,6 +32,9 @@
             <span class="simbolo" aria-hidden="true">⏻</span>
           </button>
           <span class="led" aria-hidden="true"></span>
+          <button id="boton-sonido" class="boton-sonido" type="button" aria-pressed="false" aria-label="Activar sonido">
+            <span class="interruptor" aria-hidden="true"></span><span class="rotulo-sonido" aria-hidden="true">SONIDO</span>
+          </button>
         </div>
         <span id="placa-modelo" class="placa-modelo"></span>
       </div>
@@ -40,6 +43,7 @@
     </div>
   </main>
 
+  <input id="entrada" class="entrada-oculta" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-label="Entrada de texto del terminal">
   <div id="espejo" class="solo-lectores" role="log" aria-live="off" aria-label="Contenido de la pantalla"></div>
 
   <script src="config.js"></script>
@@ -52,6 +56,8 @@
   <script src="js/nucleo/reloj.js"></script>
   <script src="js/nucleo/cronologia.js"></script>
   <script src="js/nucleo/tema.js"></script>
+  <script src="js/nucleo/sonido.js"></script>
+  <script src="js/nucleo/teclado.js"></script>
   <script src="js/nucleo/crt.js"></script>
   <script src="js/ui/rejilla.js"></script>
   <script src="js/ui/vectores.js"></script>
@@ -59,6 +65,7 @@
   <script src="js/ui/escritor.js"></script>
   <script src="js/ui/monitor.js"></script>
   <script src="js/pantallas/arranque.js"></script>
+  <script src="js/pantallas/acceso.js"></script>
   <script src="js/pantallas/prueba.js"></script>
   <script src="js/pantallas/escritorio.js"></script>
   <script src="js/vistas/colision.js"></script>

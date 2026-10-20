@@ -331,6 +331,20 @@ carga → MONITOR APAGADO ──(botón o tecla: habilita audio)──→ ENCEND
                                                           `salir` / botón ─→ APAGADO ─→ MONITOR APAGADO
 ```
 
+**Arranque por fase** (`pantallas/arranque.js`, RF-02). Todo sale del `Estado` y del PRNG con semilla del día, y las esperas se alargan con `1 + intensidad` (como mucho el doble):
+
+| Fase | Variante |
+| --- | --- |
+| 0 | Todo en `[ OK ]` |
+| 1 | Añade `ADVERTENCIA: ANOMALÍA DE FIRMA` |
+| ≥ 2 | Sectores degradados, convergencias activas, ramas afectadas y algún `[ AVISO ]` |
+| ≥ 3 | `[ ERROR ]` con reintento, la calibración se atasca una vez y los aislantes quedan por debajo del 100 %; enlace `DEGRADADO` |
+| 4 | Meta-tiempo `IRREGULAR`, enlace `INESTABLE` y advertencia de pérdida de cohesión |
+
+Las vistas caídas (§4.4) salen en `[ FALLO ]`. Mientras corre, el arranque precalcula los modelos de los 24 globos.
+
+**Acceso** (`pantallas/acceso.js`, RF-03): ID de 1–12 caracteres (A-Z, 0-9, guion), recordado en `localStorage`. El texto entra por el campo oculto de `teclado.js`, que también abre el teclado del móvil.
+
 ## 6. Escritorio y vistas
 
 **Marco del escritorio** (`pantallas/escritorio.js`):
@@ -345,12 +359,13 @@ carga → MONITOR APAGADO ──(botón o tecla: habilita audio)──→ ENCEND
 ```js
 DENDRO.vistas.registrar({
   id: "colision", tecla: "1", titulo: "COLISIÓN", tituloCorto: "COL",
-  crear(ctx) {          // ctx = { estado, ui, abrir(idVista, params), region() }
+  crear(ctx) {          // ctx = { estado, ui, abrir(idVista), region(), redibujar(), salir() }
     return {
       dibujar(region),            // texto y marcos en la rejilla; se llama al abrir, al redimensionar y cuando la vista lo pide
       vectores(v, ahora),         // diagramas en la capa vectorial; cada fotograma si animada, si no, solo al marcarse sucia
       animada: true,
-      tecla(ev), toque(punto), movimiento(punto),  // punto = { x, y } en celdas (decimales), ver §7.2
+      tecla(ev), toque(punto), movimiento(punto),  // punto = { x, y } en celdas (decimales), relativo a la región de la vista
+      capturaTeclado: false,      // true: las cifras llegan a la vista en vez de cambiar de pestaña (TERMINAL)
       detener(),
     };
   },
@@ -474,7 +489,7 @@ Las vistas leen **solo** del `Estado` del día (§4.7) y del estado de interfaz.
 
 **Error fatal (RF-08)**: franja de título con fondo `--ambar` y texto `--fondo`; cuerpo en `--texto` sobre `--fondo` con marco `--ambar`. Nunca texto blanco sobre ámbar.
 
-**Sonidos**: tecla, beep de confirmación, alarma de dos tonos.
+**Sonidos**: tecla (clic mecánico en cada pulsación o toque), beep de confirmación y de cambio de vista, alarma de dos tonos al entrar al escritorio desde la fase 3. Se silencian con el **interruptor SONIDO** del marco, que recuerda su posición en `localStorage`.
 
 **Ambiente** (`sonido.js`), solo tras interacción y respetando silenciar:
 - Transformador: senoidal a `frecuenciaRed` más armónicos 2.º y 3.º, filtrada por un pasa-bajos.
