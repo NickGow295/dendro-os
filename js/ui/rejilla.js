@@ -159,6 +159,7 @@
       limpiar() { r.rellenar(0, 0, ancho, alto); },
       caja(x, y, an, al, opciones) { return dibujarCaja(r, x, y, an, al, opciones || {}); },
       region(x, y, an, al) { return crearRegion(x0 + x, y0 + y, an, al, r); },
+      vectores() { return DENDRO.vectores.contexto(x0, y0, ancho, alto, lim); },
       // Sube el contenido n filas (para registros que se desplazan).
       desplazar(n) {
         n = n || 1;
@@ -370,8 +371,8 @@
     return lineas.join("\n").replace(/\n+$/, "");
   }
 
-  // Celda bajo un punto de la ventana, deshaciendo la curvatura del tubo si está activa.
-  function celdaEn(clienteX, clienteY) {
+  // Punto de la ventana → coordenadas de celda con decimales, deshaciendo la curvatura del tubo si está activa.
+  function puntoEn(clienteX, clienteY) {
     const caja = e.contenedor.getBoundingClientRect();
     let u = (clienteX - caja.left) / caja.width;
     let v = (clienteY - caja.top) / caja.height;
@@ -380,28 +381,36 @@
       if (!p) return null;
       u = p.u; v = p.v;
     }
-    const x = Math.floor((u * e.ancho - e.origenX) / e.celdaAncho);
-    const y = Math.floor((v * e.alto - e.origenY) / e.celdaAlto);
+    return { x: (u * e.ancho - e.origenX) / e.celdaAncho, y: (v * e.alto - e.origenY) / e.celdaAlto };
+  }
+
+  function celdaEn(clienteX, clienteY) {
+    const p = puntoEn(clienteX, clienteY);
+    if (!p) return null;
+    const x = Math.floor(p.x), y = Math.floor(p.y);
     return x >= 0 && y >= 0 && x < e.columnas && y < e.filas ? { x, y } : null;
   }
 
   const raiz = () => crearRegion(0, 0, e.columnas, e.filas, null);
 
   DENDRO.pantalla = {
-    ATR,
+    ATR, FUENTE,
     iniciar, redimensionar, renderizar, cargarFuente,
     raiz,
     escribir: (x, y, texto, color, estilo) => raiz().escribir(x, y, texto, color, estilo),
     limpiar: () => { raiz().limpiar(); e.cursor.visible = false; },
     region: (x, y, an, al) => crearRegion(x, y, an, al, null),
     ponerCursor, ocultarCursor: () => ponerCursor(e.cursor.x, e.cursor.y, false),
-    leer, textoPlano, celdaEn, largo,
+    leer, textoPlano, puntoEn, celdaEn, largo,
     alRedimensionar: (fn) => e.oyentes.push(fn),
     fijarCalidad: (f) => { if (f !== e.calidad) { e.calidad = f; redimensionar(); } },
     get columnas() { return e.columnas; },
     get filas() { return e.filas; },
     get version() { return e.version; },
     get lienzo() { return e.lienzo; },
-    info: () => ({ ancho: e.ancho, alto: e.alto, escala: e.escala, calidad: e.calidad, columnas: e.columnas, filas: e.filas, celdaAlto: e.celdaAlto }),
+    info: () => ({
+      ancho: e.ancho, alto: e.alto, escala: e.escala, calidad: e.calidad, columnas: e.columnas, filas: e.filas,
+      origenX: e.origenX, origenY: e.origenY, celdaAncho: e.celdaAncho, celdaAlto: e.celdaAlto,
+    }),
   };
 })(window.DENDRO = window.DENDRO || {});

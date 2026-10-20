@@ -1,5 +1,5 @@
-// Tubo CRT en WebGL (RF-12): dos pasadas sobre la imagen de la rejilla.
-//  1. Fósforo: mezcla la imagen nueva con la anterior atenuada (persistencia).
+// Tubo CRT en WebGL (RF-12): dos pasadas sobre la imagen de la rejilla y la capa vectorial.
+//  1. Fósforo: suma rejilla + vectores (luz) y la mezcla con la imagen anterior atenuada (persistencia).
 //  2. Tubo: curvatura de barril, aberración en los bordes, resplandor, scanlines,
 //     máscara RGB, ruido, parpadeo, banda rodante, viñeta, reflejo y haz de encendido.
 // Si WebGL no está disponible, activo() devuelve false y manda el respaldo CSS.
@@ -22,11 +22,13 @@
 
   const FOSFORO = PRECISION + `
     uniform sampler2D uFuente;
+    uniform sampler2D uVectores;
     uniform sampler2D uPrevio;
     uniform float uDecaimiento;
     varying vec2 vUv;
     void main() {
-      vec3 actual = texture2D(uFuente, vUv).rgb;
+      // Los vectores llegan premultiplicados: sumar es añadir luz de fósforo.
+      vec3 actual = min(texture2D(uFuente, vUv).rgb + texture2D(uVectores, vUv).rgb, 1.0);
       // El -1.5/255 evita que el redondeo a 8 bits deje fantasmas eternos.
       vec3 previo = max(texture2D(uPrevio, vUv).rgb * uDecaimiento - 1.5 / 255.0, 0.0);
       gl_FragColor = vec4(max(actual, previo), 1.0);
@@ -113,7 +115,7 @@
     }`;
 
   const e = {
-    activo: false, gl: null, lienzo: null, fuente: null,
+    activo: false, gl: null, lienzo: null, fuente: null, vectores: null, texVectores: null, forzarSubida: true,
     progFosforo: null, progTubo: null, uf: {}, ut: {},
     texFuente: null, buferes: [], indice: 0, ancho: 0, alto: 0,
     anterior: 0, movimientoReducido: false, intensidad: 0,
@@ -171,8 +173,9 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  function iniciar(contenedor, lienzoFuente, opciones) {
+  function iniciar(contenedor, lienzoFuente, lienzoVectores, opciones) {
     e.fuente = lienzoFuente;
+    e.vectores = lienzoVectores;
     e.movimientoReducido = !!(opciones && opciones.movimientoReducido);
     if (!cfg().efectos.webgl) return false;
     try {
@@ -191,6 +194,7 @@
       gl.enableVertexAttribArray(0);
       gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
       e.texFuente = textura(gl, 0, 0);
+      e.texVectores = textura(gl, 0, 0);
       contenedor.appendChild(e.lienzo);
       e.lienzo.addEventListener("webglcontextlost", (ev) => {
         ev.preventDefault();
@@ -215,6 +219,7 @@
     e.lienzo.width = e.ancho;
     e.lienzo.height = e.alto;
     crearBuferes();
+    e.forzarSubida = true;
   }
 
   function parametros() {
@@ -235,20 +240,26 @@
     };
   }
 
-  // Un fotograma. `subir` indica que la imagen de la rejilla cambió.
-  function dibujar(ahora, subir) {
+  // Un fotograma. subirTexto / subirVectores indican qué capa cambió desde el anterior.
+  function dibujar(ahora, subirTexto, subirVectores) {
     if (!e.activo) return;
     const gl = e.gl, p = parametros();
     const dt = e.anterior ? Math.min(0.1, (ahora - e.anterior) / 1000) : 1 / 60;
     e.anterior = ahora;
 
     gl.viewport(0, 0, e.ancho, e.alto);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, e.texVectores);
+    if (subirVectores || e.forzarSubida) {
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, e.vectores);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    }
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, e.texFuente);
-    if (subir) {
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, e.fuente);
-    }
+    if (subirTexto || e.forzarSubida) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, e.fuente);
+    e.forzarSubida = false;
 
     // Pasada 1: fósforo (ping-pong).
     const previo = e.buferes[e.indice], destino = e.buferes[1 - e.indice];
@@ -258,6 +269,7 @@
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, previo.tex);
     gl.uniform1i(e.uf.uPrevio, 1);
+    gl.uniform1i(e.uf.uVectores, 2);
     gl.uniform1f(e.uf.uDecaimiento, Math.pow(p.persistencia, dt * 60));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     e.indice = 1 - e.indice;

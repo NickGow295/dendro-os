@@ -27,7 +27,8 @@
 
 .crt-css .monitor[data-estado="encendido"] .vidrio::after { animation: parpadeo-css 0.12s steps(2) infinite; }
 
-.crt-css .lienzo-texto {
+.crt-css .lienzo-texto,
+.crt-css .lienzo-vectores {
   filter:
     drop-shadow(0 0 2px color-mix(in srgb, var(--ambar) 50%, transparent))
     drop-shadow(0 0 7px color-mix(in srgb, var(--ambar) 16%, transparent));

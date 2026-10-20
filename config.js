@@ -55,7 +55,28 @@ window.DENDRO_CONFIG = {
     altoLinea: 1.0,         // alto de celda en múltiplos del tamaño de fuente
     escalaMax: 2,           // tope de devicePixelRatio
     pixelesMax: 2600000,    // tope de píxeles internos del tubo
-    calidadAdaptativa: true, // baja la resolución interna si los fps caen
+    calidadAdaptativa: true, // baja la resolución interna (mín. 60 %) si los fps caen
+  },
+
+  // Capa vectorial (diagramas) y globos de alambre.
+  vectores: {
+    grosorLinea: 1.25,        // px CSS de un trazo normal
+    grosorActivo: 2.2,        // trazo de lo seleccionado o activo
+    transicionMs: 260,        // barrido de línea al cambiar de vista
+    globo: {
+      puntos: 1400,           // trama de tierra en un globo grande (se reduce con el radio)
+      resolucion: [96, 48],   // malla lon × lat donde se evalúa el ruido de continentes
+      octavas: 4,
+      nivelMarPorDefecto: 0.55, // fracción de océano si la tierra no define la suya
+      meridianos: 12, paralelos: 7,
+      gradosPorSegundo: 6,    // rotación
+      inclinacion: 18,        // grados del eje hacia el observador
+    },
+    osciloscopio: {
+      divisiones: [10, 8],
+      ciclosEnPantalla: 18,
+      latidosEnDeltaInicial: 4, // latidos visibles cuando Δω = Δω₀
+    },
   },
 
   efectos: {

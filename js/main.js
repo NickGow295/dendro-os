@@ -19,6 +19,7 @@
     if (actual && actual.detener) actual.detener();
     actual = pantalla;
     DENDRO.pantalla.limpiar();
+    DENDRO.vectores.marcarSucio();
     if (!pantalla) return;
     pantalla.dibujar();
     if (pantalla.iniciar) pantalla.iniciar();
@@ -75,10 +76,18 @@
   function bucle(ahora) {
     const inicio = performance.now();
     const cambio = DENDRO.pantalla.renderizar(ahora);
+    let cambioVectores = false;
+    if (actual && actual.vectores && (actual.animada || DENDRO.vectores.sucio)) {
+      DENDRO.vectores.comenzar(ahora);
+      actual.vectores(DENDRO.pantalla.raiz().vectores(), ahora);
+      cambioVectores = true;
+    } else if (!actual || !actual.vectores) {
+      cambioVectores = DENDRO.vectores.vaciar();
+    }
     // Con el tubo apagado y el resplandor extinguido no hay nada que animar.
     const apagado = DENDRO.monitor.estado() === "apagado";
     cuadrosApagado = apagado ? cuadrosApagado + 1 : 0;
-    if (cuadrosApagado < 4) DENDRO.crt.dibujar(ahora, cambio);
+    if (cuadrosApagado < 4) DENDRO.crt.dibujar(ahora, cambio, cambioVectores);
     medir(ahora, performance.now() - inicio);
     requestAnimationFrame(bucle);
   }
@@ -106,13 +115,13 @@
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") { DENDRO.monitor.encender(); return; }
     if (estado === "apagando" || !actual || !actual.toque) return;
-    actual.toque(DENDRO.pantalla.celdaEn(ev.clientX, ev.clientY));
+    actual.toque(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
   }
 
   function alMoverPuntero(ev) {
     if (ev.pointerType !== "mouse" || !actual || !actual.movimiento) return;
     if (DENDRO.monitor.estado() !== "encendido") return;
-    actual.movimiento(DENDRO.pantalla.celdaEn(ev.clientX, ev.clientY));
+    actual.movimiento(DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY));
   }
 
   function alCambiarMonitor(estado) {
@@ -156,8 +165,9 @@
 
     const tubo = $("tubo");
     DENDRO.pantalla.iniciar(tubo);
-    const conWebGL = parametro("webgl") !== "0" &&
-      DENDRO.crt.iniciar(tubo, DENDRO.pantalla.lienzo, { movimientoReducido, alPerderContexto: activarRespaldo });
+    DENDRO.vectores.iniciar(tubo);
+    const conWebGL = parametro("webgl") !== "0" && DENDRO.crt.iniciar(
+      tubo, DENDRO.pantalla.lienzo, DENDRO.vectores.lienzo, { movimientoReducido, alPerderContexto: activarRespaldo });
     if (conWebGL) {
       modo = "WEBGL";
       document.documentElement.classList.add("crt-webgl");
@@ -166,6 +176,7 @@
     if (!conWebGL) activarRespaldo();
 
     DENDRO.pantalla.alRedimensionar(() => {
+      DENDRO.vectores.redimensionar();
       DENDRO.crt.redimensionar();
       if (actual) actual.dibujar();
     });

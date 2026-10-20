@@ -86,7 +86,9 @@ body {
 
 .tubo { position: absolute; inset: 0; transform-origin: 50% 50%; }
 .tubo canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.crt-webgl .lienzo-texto { visibility: hidden; }
+.crt-webgl .lienzo-texto, .crt-webgl .lienzo-vectores { visibility: hidden; }
+/* Sin WebGL, los vectores suman luz sobre la rejilla como haría el fósforo. */
+.crt-css .lienzo-vectores { mix-blend-mode: screen; }
 
 .haz {
   position: absolute;

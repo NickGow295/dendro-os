@@ -11,16 +11,16 @@
 
 ## Fase 0 — Base de render y configuración
 
-- [ ] **T0.1** Estructura de carpetas de `02-diseno.md §2` y `index.html` con el orden de carga de scripts. *(RNF-01)*
-- [ ] **T0.2** `config.js` completo según el contrato de `02-diseno.md §3` (incluidos `pantalla` y `vectores`), con los valores de `04-lore.md`. *(RF-09)*
+- [x] **T0.1** Estructura de carpetas de `02-diseno.md §2` y `index.html` con el orden de carga de scripts. *(RNF-01)*
+- [x] **T0.2** `config.js` completo según el contrato de `02-diseno.md §3` (incluidos `pantalla` y `vectores`), con los valores de `04-lore.md`. *(RF-09)*
 - [x] **T0.3** `tema.js`: aplicar `config.colores` a variables CSS, canvas y shader. *(RF-09)*
-- [ ] **T0.4** `crt.css` + `base.css`: carcasa del monitor y respaldo sin WebGL (clase `crt-css`), incluida la capa vectorial con `mix-blend-mode: screen`; respeta `prefers-reduced-motion`. *(RNF-03, RF-12)*
+- [x] **T0.4** `crt.css` + `base.css`: carcasa del monitor y respaldo sin WebGL (clase `crt-css`), incluida la capa vectorial con `mix-blend-mode: screen`; respeta `prefers-reduced-motion`. *(RNF-03, RF-12)*
 - [x] **T0.5** `prng.js` y `reloj.js` (fecha real en la zona horaria de config, override `?fecha=`). *(RF-10, RNF-06)*
 - [x] **T0.6** `crt.js`: tubo WebGL (curvatura, persistencia, aberración, ruido, parpadeo, banda, máscara, reflejo) con detección de fallo → respaldo CSS. *(RF-12)*
 - [x] **T0.7** `monitor.js`: monitor apagado con botón evidente; encendido (punto → línea → imagen); versión reducida con `prefers-reduced-motion`. *(RF-11)*
-- [ ] **T0.8** `vectores.js`: capa vectorial con las primitivas de `02-diseno.md §7.3` en unidades de celda; composición `min(1, A + B)` en la pasada de fósforo, subiendo cada textura solo cuando cambia; `pantalla.puntoEn()`; `region.vectores()`. *(RF-12, RF-04)*
-- [ ] **T0.9** `ruido.js` (fBm 3D con semilla) y `globo.js`: modelo procedural en caché (malla de ruido, umbral por `mar`, costas por *marching squares*, trama de Fibonacci), proyección ortográfica con rotación e inclinación, nivel de detalle por radio y opciones `halo`, `danos`, `fragmentacion`, `fusion`, `inestable`. *(RF-13)*
-- [ ] **T0.10** Ampliar el patrón de prueba temporal con la capa vectorial: primitivas, texto grande, una fila de globos de distintas semillas y una página con 24 globos pequeños para medir. *(RNF-02)*
+- [x] **T0.8** `vectores.js`: capa vectorial con las primitivas de `02-diseno.md §7.3` en unidades de celda; composición `min(1, A + B)` en la pasada de fósforo, subiendo cada textura solo cuando cambia; `pantalla.puntoEn()`; `region.vectores()`. *(RF-12, RF-04)*
+- [x] **T0.9** `ruido.js` (fBm 3D con semilla) y `globo.js`: modelo procedural en caché (malla de ruido, umbral por `mar`, costas por *marching squares*, trama de Fibonacci), proyección ortográfica con rotación e inclinación, nivel de detalle por radio y opciones `halo`, `danos`, `fragmentacion`, `fusion`, `inestable`. *(RF-13)*
+- [x] **T0.10** Ampliar el patrón de prueba temporal con la capa vectorial: primitivas, texto grande, una fila de globos de distintas semillas y una página con 24 globos pequeños para medir. *(RNF-02)*
 
 **Verificación:** el patrón de prueba muestra vectores y globos curvados, con brillo y estela del tubo; dos cargas dan los mismos globos; con `?fps=1`, 24 globos a ≥ 60 fps en escritorio; con `?webgl=0`, la capa vectorial se ve sobre la rejilla sin errores.
 
