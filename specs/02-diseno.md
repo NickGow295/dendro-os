@@ -48,6 +48,7 @@ dendro-os/
 │   │   ├── sonido.js       # Web Audio: beeps, alarmas, ambiente (transformador + ventilador)
 │   │   ├── teclado.js      # atajos globales, foco, navegación
 │   │   ├── glitch.js       # corrupción de texto y de trazos según intensidad
+│   │   ├── local.js        # estado local del operador: registro de acciones, mensajes leídos, desbloqueos
 │   │   └── crt.js          # shader WebGL del tubo (§7.1); si falla, activa el respaldo CSS
 │   ├── ui/
 │   │   ├── rejilla.js      # rejilla de caracteres + regiones (§7.2)
@@ -312,6 +313,7 @@ Estado = {
   parejaPrincipal: "C-03",                       // ver §4.5
   ataques: [{ desde, hacia, tipo, progreso }],   // para COLISIÓN y ÁRBOL (rojo), ver §4.5
   armas: { [tipo]: { nombre, descripcion } },    // catálogo de data/colisiones.js, para que las vistas no lean data/
+  archivo: [{ id, titulo, nivel, desbloqueo, texto }], // documentos de data/archivo.js
   registro: [{ fecha, hora, dia, tipo, texto, tierras, origen, corrupta }],  // dia = días desde inicioAlerta
   mensajesDisponibles: [...],
   // Ejes temporales ya resueltos, para que las vistas no hagan aritmética de fechas:

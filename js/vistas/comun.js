@@ -51,6 +51,25 @@
     }
   }
 
+  // Ajusta un texto a un ancho, partiendo por palabras.
+  function partir(texto, ancho) {
+    const lineas = [];
+    let actual = "";
+    for (const palabra of String(texto).split(/\s+/)) {
+      if (actual && (actual + " " + palabra).length > ancho) { lineas.push(actual); actual = palabra; }
+      else actual = actual ? actual + " " + palabra : palabra;
+    }
+    if (actual || !lineas.length) lineas.push(actual);
+    return lineas;
+  }
+
+  // Lista desplazable: primera fila visible para que el elemento elegido quede a la vista.
+  function desplazamiento(actual, elegido, visibles) {
+    if (elegido < actual) return elegido;
+    if (elegido >= actual + visibles) return elegido - visibles + 1;
+    return actual;
+  }
+
   // Selector ◄ … ► centrado en una fila; devuelve el texto escrito.
   function selector(reg, y, texto, color) {
     reg.centrar(y, `◄  ${texto}  ►`, color || "ambar");
@@ -65,6 +84,6 @@
 
   DENDRO.vistasComun = {
     MAYUS, COLOR_ESTADO, ABREVIATURA, POSTURAS, COLOR_TIPO,
-    tierra, pareja, opcionesGlobo, colorEstabilidad, barraEstabilidad, selector, ladoDelToque,
+    tierra, pareja, opcionesGlobo, colorEstabilidad, barraEstabilidad, selector, ladoDelToque, partir, desplazamiento,
   };
 })(window.DENDRO = window.DENDRO || {});

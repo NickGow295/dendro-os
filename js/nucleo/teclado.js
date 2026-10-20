@@ -9,6 +9,8 @@
   const e = { campo: null, peticion: null };
 
   function ignorable(ev) {
+    // Tab navega por los botones del marco, salvo mientras se escribe (autocompletado de la terminal).
+    if (ev.key === "Tab" && e.peticion && ev.target === e.campo) return false;
     return ev.ctrlKey || ev.metaKey || ev.altKey || IGNORADAS.has(ev.key);
   }
 

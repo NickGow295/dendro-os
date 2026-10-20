@@ -276,6 +276,7 @@
       parejaPrincipal: parejas.length ? parejaPrincipal(parejas) : null,
       ataques, registro,
       armas: datos().armas || {},
+      archivo: datos().archivo || [],
       mensajesDisponibles: (datos().mensajes || []).filter((m) => m.fecha <= fecha),
       modulosCaidos,
     };

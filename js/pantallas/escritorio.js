@@ -64,7 +64,7 @@
       region: regionVista,
       abrir,
       salir: salir || (() => {}),
-      redibujar() { const reg = regionVista(); reg.limpiar(); if (activa) activa.dibujar(reg); },
+      redibujar() { const reg = regionVista(); reg.limpiar(); if (activa) activa.dibujar(reg); DENDRO.vectores.marcarSucio(); },
     };
 
     function abrir(id) {
@@ -159,6 +159,8 @@
         barrido(ahora);
       },
       tecla(ev) {
+        // Con la terminal esperando respuesta, Esc interrumpe la orden en vez de salir de la vista.
+        if (ev.key === "Escape" && activa && activa.ocupada && activa.ocupada()) { activa.tecla(ev); return; }
         if (ev.key === "Escape") { ev.preventDefault(); abrir("colision"); return; }
         const porF = TECLAS_F[ev.key];
         const capturaTexto = activa && activa.capturaTeclado;

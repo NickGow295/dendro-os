@@ -8,17 +8,6 @@
   const DIGITOS = "0123456789";
   const COLUMNA_VALOR = 16;
 
-  function partir(texto, ancho) {
-    const lineas = [];
-    let actual = "";
-    for (const palabra of String(texto).split(/\s+/)) {
-      if (actual && (actual + " " + palabra).length > ancho) { lineas.push(actual); actual = palabra; }
-      else actual = actual ? actual + " " + palabra : palabra;
-    }
-    if (actual) lineas.push(actual);
-    return lineas;
-  }
-
   function crear(ctx) {
     const { estado, ui } = ctx;
     const ids = estado.tierras.map((t) => t.id);
@@ -55,8 +44,8 @@
       fila("TECNOLOGÍA", MAYUS(t.tecnologia));
       const ancho = caja.ancho - 17;
       const planos = t.planos.length ? MAYUS(t.planos.join(", ")) : "NINGUNO DETECTADO";
-      partir(planos, ancho).forEach((l, i) => fila(i ? "" : "PLANOS ANEXOS", l, "textoTenue"));
-      partir(MAYUS(t.caracter), ancho).forEach((l, i) => fila(i ? "" : "CARÁCTER", l, "textoTenue"));
+      C.partir(planos, ancho).forEach((l, i) => fila(i ? "" : "PLANOS ANEXOS", l, "textoTenue"));
+      C.partir(MAYUS(t.caracter), ancho).forEach((l, i) => fila(i ? "" : "CARÁCTER", l, "textoTenue"));
       if (par) {
         fila("PAREJA", `${par.id} · ${MAYUS(otra.nombre)}`, "ambar");
         fila("POSTURA", POSTURAS[par.postura], par.postura.includes("hostil") ? "arma" : "texto");

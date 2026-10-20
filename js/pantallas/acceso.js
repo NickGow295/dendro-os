@@ -62,6 +62,7 @@
       DENDRO.teclado.soltar();
       DENDRO.sonido.beep(880);
       guardar(valor);
+      DENDRO.local.registrar("SISTEMA", `OPERADOR ${valor} CONECTADO`);
       dibujar();
       escritor = DENDRO.escritor.crearEscritor(consola);
       try {

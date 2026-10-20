@@ -68,11 +68,11 @@
 
 ## Fase 4 — Vistas de texto y secundarias
 
-- [ ] **T4.1** V6 REGISTRO con filtros e histograma por día. *(RF-05)*
-- [ ] **T4.2** V7 COMUNICACIONES con `data/mensajes.js`. *(RF-05)*
-- [ ] **T4.3** V8 ARCHIVO con `data/archivo.js` y documento desbloqueable. *(RF-05)*
-- [ ] **T4.4** V9 CONTENCIÓN (acciones locales, sin afectar la cronología). *(RF-05)*
-- [ ] **T4.5** V0 TERMINAL: registro de comandos, historial, Tab, comandos de `01-requisitos.md RF-05` y ocultos de `04-lore.md §8` (incluidos los de varias palabras), enlaces a vistas, latencia deliberada (`02-diseno.md §6`). *(RF-05, RF-07)*
+- [x] **T4.1** V6 REGISTRO con filtros e histograma por día. *(RF-05)*
+- [x] **T4.2** V7 COMUNICACIONES con `data/mensajes.js`. *(RF-05)*
+- [x] **T4.3** V8 ARCHIVO con `data/archivo.js` y documento desbloqueable. *(RF-05)*
+- [x] **T4.4** V9 CONTENCIÓN (acciones locales, sin afectar la cronología). *(RF-05)*
+- [x] **T4.5** V0 TERMINAL: registro de comandos, historial, Tab, comandos de `01-requisitos.md RF-05` y ocultos de `04-lore.md §8` (incluidos los de varias palabras), enlaces a vistas, latencia deliberada (`02-diseno.md §6`). *(RF-05, RF-07)*
 
 ## Fase 5 — Degradación y colapso
 
