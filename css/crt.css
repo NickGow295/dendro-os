@@ -1,0 +1,40 @@
+/* Respaldo sin WebGL (clase .crt-css): scanlines, viñeta, reflejo, resplandor y parpadeo en CSS.
+   Con WebGL todo esto lo hace el shader de js/nucleo/crt.js. */
+
+.crt-css .vidrio::before,
+.crt-css .vidrio::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.crt-css .vidrio::before {
+  z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0, transparent 2px,
+    color-mix(in srgb, var(--fondo) 50%, transparent) 2px, color-mix(in srgb, var(--fondo) 50%, transparent) 3px
+  );
+}
+
+.crt-css .vidrio::after {
+  z-index: 3;
+  background:
+    radial-gradient(ellipse at 20% 14%, color-mix(in srgb, var(--rama) 6%, transparent), transparent 38%),
+    radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--fondo) 80%, transparent) 100%);
+}
+
+.crt-css .monitor[data-estado="encendido"] .vidrio::after { animation: parpadeo-css 0.12s steps(2) infinite; }
+
+.crt-css .lienzo-texto {
+  filter:
+    drop-shadow(0 0 2px color-mix(in srgb, var(--ambar) 50%, transparent))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--ambar) 16%, transparent));
+}
+
+.crt-css.sin-scanlines .vidrio::before { display: none; }
+.crt-css.sin-parpadeo .vidrio::after { animation: none; }
+.crt-css.sin-curvatura .vidrio { border-radius: 1%; }
+
+@keyframes parpadeo-css { 50% { opacity: 0.93; } }

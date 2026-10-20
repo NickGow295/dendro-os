@@ -5,9 +5,9 @@
 
 ## Fase 0-P — Prototipo de render (decisión A/B de `02-diseno.md §7.1`)
 
-- [ ] **TP.1** Renderizador de rejilla de caracteres con API pequeña (`escribir(x, y, texto, color)`, regiones/ventanas, cursor, celda bajo el puntero) para que los módulos no dependan de su implementación.
-- [ ] **TP.2** Shader CRT (curvatura, persistencia, aberración, ruido, parpadeo) con respaldo CSS.
-- [ ] **TP.3** Monitor apagado con botón de encendido evidente, encendido/apagado y pantalla de arranque sobre la rejilla.
+- [x] **TP.1** Renderizador de rejilla de caracteres con API pequeña (`escribir(x, y, texto, color)`, regiones/ventanas, cursor, celda bajo el puntero) para que los módulos no dependan de su implementación.
+- [x] **TP.2** Shader CRT (curvatura, persistencia, aberración, ruido, parpadeo) con respaldo CSS.
+- [x] **TP.3** Monitor apagado con botón de encendido evidente, encendido/apagado y pantalla de arranque sobre la rejilla.
 
 **Verificación:** revisión del autor en escritorio y móvil, incluido el rendimiento. Si se aprueba, se reescriben §1, §7.1 y estas tareas para la opción B; si no, se vuelve a la opción A.
 
@@ -15,11 +15,11 @@
 
 - [ ] **T0.1** Crear la estructura de carpetas de `02-diseno.md §2` y `index.html` con el orden de carga de scripts. *(RNF-01)*
 - [ ] **T0.2** Escribir `config.js` completo según el contrato de `02-diseno.md §3`, con los valores de `04-lore.md`. *(RF-09)*
-- [ ] **T0.3** `tema.js`: aplicar `config.colores` a variables CSS. Verificar: cambiar `ambar` cambia toda la interfaz. *(RF-09)*
+- [x] **T0.3** `tema.js`: aplicar `config.colores` a variables CSS. Verificar: cambiar `ambar` cambia toda la interfaz. *(RF-09)*
 - [ ] **T0.4** `crt.css` + `base.css`: monitor, scanlines, curvatura, viñeta, brillo, cursor de bloque; respeta `prefers-reduced-motion`. Es también el respaldo sin WebGL (clase `crt-css`). *(RNF-03, RF-12)*
-- [ ] **T0.5** `prng.js` y `reloj.js` (fecha real en la zona horaria de config, override `?fecha=`). *(RF-10, RNF-06)*
+- [x] **T0.5** `prng.js` y `reloj.js` (fecha real en la zona horaria de config, override `?fecha=`). *(RF-10, RNF-06)*
 - [ ] **T0.6** `crt.js`: capa WebGL con curvatura de barril, persistencia del fósforo, aberración cromática en los bordes, ruido y parpadeo, leyendo `efectos.crt`; detección de fallo → respaldo CSS. *(RF-12)* — **arquitectura pendiente, `02-diseno.md §7.1`**
-- [ ] **T0.7** `monitor.js`: estado de monitor apagado con botón de encendido en el marco; animación de encendido (punto → línea → imagen); versión reducida con `prefers-reduced-motion`. *(RF-11)*
+- [x] **T0.7** `monitor.js`: estado de monitor apagado con botón de encendido en el marco; animación de encendido (punto → línea → imagen); versión reducida con `prefers-reduced-motion`. *(RF-11)*
 
 **Verificación:** abrir `index.html` con doble clic muestra el monitor apagado; al pulsar una tecla se enciende y aparece la pantalla ámbar vacía con el cursor parpadeando y los efectos CRT. Con `efectos.webgl: false` se ve el respaldo CSS. Sin errores en consola en ambos casos.
 
