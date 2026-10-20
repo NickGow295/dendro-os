@@ -249,3 +249,10 @@ body {
 }
 
 .movimiento-reducido *, .movimiento-reducido *::before, .movimiento-reducido *::after { animation: none !important; transition: none !important; }
+
+/* Panel de depuración (debug.mostrarPanelDebug o ?debug=1), fuera del tubo. */
+.panel-debug {
+  position: fixed; left: 8px; bottom: 8px; z-index: 10; margin: 0; max-width: 46ch; max-height: 60vh; overflow: auto;
+  padding: 6px 8px; font: 11px/1.35 monospace; color: var(--exito);
+  background: color-mix(in srgb, var(--fondo) 88%, transparent); border: 1px solid var(--ambar-tenue);
+}

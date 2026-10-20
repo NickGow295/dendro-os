@@ -1,0 +1,31 @@
+// Eventos fijos de la narrativa (04-lore.md §5). Texto en mayúsculas, estilo telegrama.
+// tipo: SISTEMA | COLISIÓN | HOSTIL | CONTENCIÓN · tierras: ids implicados (para su línea temporal).
+window.DENDRO_DATOS = window.DENDRO_DATOS || {};
+window.DENDRO_DATOS.eventos = [
+  { fecha: "2026-10-20", tipo: "SISTEMA", tierras: ["B-0x01", "B-0x02"],
+    texto: "ANOMALÍA DE FIRMA EN EL CUADRANTE BAJO DEL ÁRBOL. Δω ENTRE B-0x01 Y B-0x02 BAJO EL UMBRAL SEGURO." },
+  { fecha: "2026-10-21", tipo: "SISTEMA", tierras: [],
+    texto: "LA DIRECTORA KESH ELEVA LA ALERTA A ÁMBAR." },
+  { fecha: "2026-10-23", tipo: "HOSTIL", tierras: ["B-0x02", "B-0x01"],
+    texto: "OSTRAKH DETECTA A VELMORA EN SUS RADARES. MOVILIZACIÓN GENERAL." },
+  { fecha: "2026-10-25", tipo: "HOSTIL", tierras: ["B-0x02", "B-0x01"],
+    texto: "OSTRAKH LANZA EL PRIMER MISIL INTERRAMA. INTERCEPTADO POR DEFENSAS RÚNICAS." },
+  { fecha: "2026-10-27", tipo: "COLISIÓN", tierras: ["B-0x01", "B-0x02"],
+    texto: "CONTACTO. PRIMERA COLISIÓN CONFIRMADA: B-0x01 / B-0x02." },
+  { fecha: "2026-11-01", tipo: "SISTEMA", tierras: ["B-0x02"],
+    texto: "OSTRAKH DEJA DE TRANSMITIR." },
+  { fecha: "2026-11-05", tipo: "SISTEMA", tierras: [],
+    texto: "CONVERGENCIAS EN RAMAS QUE NO ESTABAN EN RIESGO. EL PATRÓN NO ES ALEATORIO." },
+  { fecha: "2026-11-15", tipo: "SISTEMA", tierras: [],
+    texto: "HIPÓTESIS: ALGO EN LA BASE DEL TRONCO TIRA DE LAS RAMAS HACIA DENTRO." },
+  { fecha: "2026-11-28", tipo: "HOSTIL", tierras: ["B-0x0A", "B-0x09"],
+    texto: "SOLENNE DECLARA HEREJÍA A LA «TIERRA SIN DIOSES» Y PREPARA LA LANZA SOLAR." },
+  { fecha: "2026-12-02", tipo: "SISTEMA", tierras: [],
+    texto: "FALLOS INTERMITENTES EN LA ESTACIÓN RAÍZ. IRREGULARIDADES EN EL META-TIEMPO τ." },
+  { fecha: "2026-12-10", tipo: "SISTEMA", tierras: ["B-0x17", "B-0x18"],
+    texto: "ORIGEN Y POSTRERA CONVERGEN. SI EL ANCLA CAE, CAE TODO." },
+  { fecha: "2026-12-14", tipo: "COLISIÓN", tierras: ["B-0x17", "B-0x18"],
+    texto: "CONTACTO ORIGEN / POSTRERA. PÉRDIDA DE COHESIÓN EN EL TRONCO." },
+  { fecha: "2026-12-15", tipo: "SISTEMA", tierras: [],
+    texto: "ÚLTIMA TRANSMISIÓN DE LA DIRECTORA KESH (VER COMUNICACIONES)." },
+];

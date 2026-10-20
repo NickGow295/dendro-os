@@ -306,9 +306,12 @@ Estado = {
   fecha, fase, nombreFase, nivelAlerta, p, intensidad,
   ramasAfectadas, diasParaColapso,
   tierras: [{ ...datos, estabilidad, estado, fusionadaCon, eventos: [...] }],
-  parejas: [{ ...datos, estado, hostil, deltaOmega0, deltaOmega, separacion, diasParaContacto }],
+  parejas: [{ ...datos, estado, hostil, deltaOmega0, deltaOmega, separacion,
+              diasParaContacto,            // negativo: días desde el contacto
+              serieDeltaOmega }],          // [{ fecha, valor, futuro }] de dd −9 a +2, para minigráficas (las vistas no calculan fechas)
   parejaPrincipal: "C-03",                       // ver §4.5
   ataques: [{ desde, hacia, tipo, progreso }],   // para COLISIÓN y ÁRBOL (rojo), ver §4.5
+  armas: { [tipo]: { nombre, descripcion } },    // catálogo de data/colisiones.js, para que las vistas no lean data/
   registro: [...], mensajesDisponibles: [...],
   modulosCaidos: [...]
 }

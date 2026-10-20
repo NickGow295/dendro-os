@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas del motor · DENDRO-OS</title>
+  <style>
+    body { margin: 0; padding: 24px; background: var(--fondo); color: var(--texto); font: 15px/1.5 monospace; }
+    h1 { color: var(--ambar); font-size: 18px; letter-spacing: 0.1em; }
+    .resumen { margin: 12px 0 20px; font-weight: bold; }
+    .ok { color: var(--exito); }
+    .fallo { color: var(--peligro); }
+    li { list-style: none; margin: 2px 0; }
+    li::before { content: "· "; color: var(--ambar-tenue); }
+  </style>
+</head>
+<body>
+  <h1>DENDRO-OS · PRUEBAS DEL MOTOR DE CRONOLOGÍA</h1>
+  <div id="resumen" class="resumen"></div>
+  <ul id="lista"></ul>
+
+  <script src="../config.js"></script>
+  <script src="../data/tierras.js"></script>
+  <script src="../data/tierra-gris.js"></script>
+  <script src="../data/colisiones.js"></script>
+  <script src="../data/eventos.js"></script>
+  <script src="../js/nucleo/prng.js"></script>
+  <script src="../js/nucleo/reloj.js"></script>
+  <script src="../js/nucleo/tema.js"></script>
+  <script src="../js/nucleo/cronologia.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      DENDRO.tema.aplicar();
+      const cr = DENDRO_CONFIG.cronologia;
+      const en = (f) => DENDRO.cronologia.calcularEstado(f);
+      const par = (e, id) => e.parejas.find((p) => p.id === id);
+      const resultados = [];
+      const comprobar = (nombre, fn) => {
+        let ok = false, detalle = "";
+        try { const r = fn(); ok = r === true; if (!ok && r) detalle = String(r); } catch (err) { detalle = err.message; }
+        resultados.push({ nombre, ok, detalle });
+      };
+
+      // Criterios de 01-requisitos.md §5
+      comprobar("10-19: fase 0 NOMINAL, 0 ramas", () => en("2026-10-19").fase === 0 && en("2026-10-19").ramasAfectadas === 0);
+      comprobar("10-20: fase 1, alerta ÁMBAR, 0 ramas", () => { const e = en("2026-10-20"); return e.fase === 1 && e.nivelAlerta === "ÁMBAR" && e.ramasAfectadas === 0; });
+      comprobar("10-27: exactamente 2 ramas y C-01 en CONTACTO", () => { const e = en("2026-10-27"); return e.ramasAfectadas === 2 && par(e, "C-01").estado === "CONTACTO"; });
+      comprobar("12-16: fase 5 COLAPSO y ramas = ramasAfectadasFinal", () => { const e = en(cr.colapsoTotal); return e.fase === 5 && e.ramasAfectadas === cr.ramasAfectadasFinal; });
+      comprobar("Al menos 4 parejas hostiles", () => en("2026-10-20").parejas.filter((p) => /hostil/.test(p.postura)).length >= 4);
+      comprobar("Determinismo: el mismo día da el mismo Estado", () => JSON.stringify(en("2026-11-20")) === JSON.stringify(en("2026-11-20")));
+
+      comprobar("Monotonía 20/10 → 31/12: ramas y fase nunca retroceden", () => {
+        let antes = null;
+        for (let f = "2026-10-20"; f <= "2026-12-31"; f = DENDRO.reloj.sumarDias(f, 1)) {
+          const e = en(f);
+          if (antes && (e.ramasAfectadas < antes.ramasAfectadas || e.fase < antes.fase)) return "retrocede el " + f;
+          antes = e;
+        }
+        return true;
+      });
+      comprobar("Crecimiento exponencial: el cociente diario de ramas es casi constante", () => {
+        const a = en("2026-11-10").ramasAfectadas / en("2026-11-09").ramasAfectadas;
+        const b = en("2026-12-10").ramasAfectadas / en("2026-12-09").ramasAfectadas;
+        return Math.abs(a - b) < 0.02 || `cocientes ${a.toFixed(3)} y ${b.toFixed(3)}`;
+      });
+
+      // Parejas, ataques y desenlaces
+      comprobar("Δω₀ = |ω_a − ω_b| (C-03)", () => { const p = par(en("2026-10-20"), "C-03"); return Math.abs(p.deltaOmega0 - Math.abs(2.7183 - 2.7461)) < 1e-9; });
+      comprobar("Separación de C-03 baja día a día del 11/11 al 18/11 y llega a 0", () => {
+        let antes = 2;
+        for (let f = "2026-11-11"; f <= "2026-11-18"; f = DENDRO.reloj.sumarDias(f, 1)) {
+          const s = par(en(f), "C-03").separacion;
+          if (s >= antes) return "no baja el " + f;
+          antes = s;
+        }
+        return antes === 0;
+      });
+      comprobar("10-25: Ostrakh ataca a Velmora (antes del contacto)", () => en("2026-10-25").ataques.some((a) => a.desde === "B-0x02" && a.hacia === "B-0x01"));
+      comprobar("11-20: C-03 en HOSTILIDADES con ataques en ambos sentidos", () => {
+        const e = en("2026-11-20");
+        const at = e.ataques.filter((a) => a.pareja === "C-03");
+        return par(e, "C-03").estado === "HOSTILIDADES" && at.some((a) => a.desde === "B-0x05") && at.some((a) => a.desde === "B-0x06");
+      });
+      comprobar("11-20: C-01 resuelta (Velmora sobrevive) y C-02 fusionada", () => {
+        const e = en("2026-11-20");
+        const velmora = e.tierras.find((t) => t.id === "B-0x01"), ostrakh = e.tierras.find((t) => t.id === "B-0x02");
+        return par(e, "C-01").estado === "SUPERVIVIENTE" && velmora.estado === "SUPERVIVIENTE" && ostrakh.estado === "ANIQUILADA" && par(e, "C-02").estado === "FUSIONADA";
+      });
+      comprobar("Pareja principal en fechas clave", () => {
+        const esperadas = { "2026-10-19": "C-01", "2026-10-25": "C-01", "2026-11-20": "C-03", "2026-12-05": "C-06", "2026-12-15": "C-12" };
+        for (const [f, id] of Object.entries(esperadas)) if (en(f).parejaPrincipal !== id) return `${f}: ${en(f).parejaPrincipal} (esperaba ${id})`;
+        return true;
+      });
+
+      // Registro
+      comprobar("El registro de ayer sigue igual hoy (historial estable)", () => {
+        const clave = (ev) => ev.fecha + ev.hora + ev.texto;
+        const hoy = new Set(en("2026-11-20").registro.map(clave));
+        return en("2026-11-19").registro.every((ev) => hoy.has(clave(ev))) || "falta alguna entrada de ayer";
+      });
+      comprobar("El registro no muestra eventos futuros", () => en("2026-11-20").registro.every((ev) => ev.fecha <= "2026-11-20"));
+      comprobar("Tierra Gris usa la máscara real", () => en("2026-10-20").tierras.find((t) => t.id === "B-0x09").globo.mascara === "tierra-gris" && !!window.DENDRO_MASCARAS["tierra-gris"]);
+
+      const fallos = resultados.filter((r) => !r.ok).length;
+      const resumen = document.getElementById("resumen");
+      resumen.textContent = fallos ? `✗ ${fallos} de ${resultados.length} pruebas fallan` : `✓ ${resultados.length} de ${resultados.length} pruebas en verde`;
+      resumen.className = "resumen " + (fallos ? "fallo" : "ok");
+      document.getElementById("lista").innerHTML = resultados
+        .map((r) => `<li class="${r.ok ? "ok" : "fallo"}">${r.ok ? "OK   " : "FALLO"} ${r.nombre}${r.detalle ? " — " + r.detalle : ""}</li>`)
+        .join("");
+      document.title = (fallos ? "✗ " : "✓ ") + document.title;
+    })();
+  </script>
+</body>
+</html>

@@ -7,6 +7,7 @@
   const TECLAS_IGNORADAS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock", "Tab", "F5", "F11", "F12"]);
 
   const fecha = DENDRO.reloj.fechaHoy();
+  const estadoDia = DENDRO.cronologia.calcularEstado(fecha);
   const movimientoReducido = cfg().efectos.respetarMovimientoReducido &&
     !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const parametro = (n) => (cfg().debug.permitirParametrosURL ? DENDRO.reloj.parametroURL(n) : null);
@@ -26,7 +27,11 @@
   }
 
   function irArranque() {
-    mostrar(DENDRO.arranque.crear({ fecha, alTerminar: irPrueba }));
+    mostrar(DENDRO.arranque.crear({ fecha, alTerminar: parametro("prueba") === "1" ? irPrueba : irEscritorio }));
+  }
+
+  function irEscritorio() {
+    mostrar(DENDRO.escritorio.crear({ estado: estadoDia }));
   }
 
   function irPrueba() {
@@ -154,9 +159,26 @@
     tubo.style.filter = `brightness(${t.calor + t.haz})`;
   }
 
+  // Panel de depuración (RF-10): resumen del Estado del día; el Estado completo va a la consola.
+  function mostrarPanelDebug() {
+    const e = estadoDia;
+    const panel = document.createElement("pre");
+    panel.className = "panel-debug";
+    panel.textContent = [
+      `${e.fecha} · FASE ${e.fase} ${e.nombreFase} · ALERTA ${e.nivelAlerta}`,
+      `p=${e.p.toFixed(3)}  intensidad=${e.intensidad.toFixed(2)}  ramas=${e.ramasAfectadas}  días al colapso=${e.diasParaColapso}`,
+      `principal=${e.parejaPrincipal}  ataques=${e.ataques.length}  registro=${e.registro.length}  caídos=[${e.modulosCaidos.join(", ")}]`,
+      ...e.parejas.map((p) => `${p.id} ${p.estado.padEnd(13)} Δω=${p.deltaOmega.toFixed(4)} sep=${p.separacion.toFixed(2)} T=${-p.diasParaContacto}${p.hostil ? " HOSTIL" : ""}`),
+    ].join("\n");
+    document.body.appendChild(panel);
+    console.info("DENDRO-OS · Estado del día", e);
+  }
+
   function iniciar() {
     DENDRO.tema.aplicar();
     rotular();
+    DENDRO.crt.fijarIntensidad(estadoDia.intensidad);
+    if (cfg().debug.mostrarPanelDebug || parametro("debug") === "1") mostrarPanelDebug();
     if (movimientoReducido) document.documentElement.classList.add("movimiento-reducido");
     const ef = cfg().efectos, clases = document.documentElement.classList;
     if (!ef.scanlines) clases.add("sin-scanlines");

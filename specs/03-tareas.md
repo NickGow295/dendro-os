@@ -26,14 +26,23 @@
 
 ## Fase 1 — Motor de cronología y datos
 
-- [ ] **T1.1** `data/tierras.js` (con `omega` y `globo`) y `data/colisiones.js` (con `armas`) con las 24 tierras y 12 parejas de `04-lore.md`. *(RF-06, RF-13)*
-- [ ] **T1.2** `data/tierra-gris.js`: máscara equirectangular de baja resolución de los continentes de nuestra Tierra; `globo.js` la usa para B-0x09. *(RF-13)*
-- [ ] **T1.3** `cronologia.js`: `calcularEstado(fecha)` con progreso, ramas afectadas, fases, intensidad, estados de pareja, Δω₀ derivado de ω, Δω, `separacion`, `hostil`, `parejaPrincipal`, ataques desde dd −2, estabilidad por tierra y fusiones (`02-diseno.md §4.5`). *(RF-01, RF-06, RF-07)*
-- [ ] **T1.4** `data/eventos.js` y generación del registro del día (fijos + parejas + ruido sembrado por el día de cada entrada, horas deterministas; `02-diseno.md §4.6`). *(RF-01)*
-- [ ] **T1.5** `tests/cronologia.test.html` que comprueba los criterios de fechas de `01-requisitos.md §5`, la monotonía día a día del 20/10 al 31/12 y la pareja principal en fechas clave. *(RF-01)*
-- [ ] **T1.6** Panel de depuración opcional (`debug.mostrarPanelDebug`) que imprime el Estado del día. *(RF-10)*
+- [x] **T1.1** `data/tierras.js` (con `omega` y `globo`) y `data/colisiones.js` (con `armas`) con las 24 tierras y 12 parejas de `04-lore.md`. *(RF-06, RF-13)*
+- [x] **T1.2** `data/tierra-gris.js`: máscara equirectangular de baja resolución de los continentes de nuestra Tierra; `globo.js` la usa para B-0x09. *(RF-13)*
+- [x] **T1.3** `cronologia.js`: `calcularEstado(fecha)` con progreso, ramas afectadas, fases, intensidad, estados de pareja, Δω₀ derivado de ω, Δω, `separacion`, `hostil`, `parejaPrincipal`, ataques desde dd −2, estabilidad por tierra y fusiones (`02-diseno.md §4.5`). *(RF-01, RF-06, RF-07)*
+- [x] **T1.4** `data/eventos.js` y generación del registro del día (fijos + parejas + ruido sembrado por el día de cada entrada, horas deterministas; `02-diseno.md §4.6`). *(RF-01)*
+- [x] **T1.5** `tests/cronologia.test.html` que comprueba los criterios de fechas de `01-requisitos.md §5`, la monotonía día a día del 20/10 al 31/12 y la pareja principal en fechas clave. *(RF-01)*
+- [x] **T1.6** Panel de depuración opcional (`debug.mostrarPanelDebug`) que imprime el Estado del día. *(RF-10)*
 
 **Verificación:** todas las pruebas en verde (skill `verificar-cronologia` y `tests/cronologia.test.html`).
+
+## Rebanada vertical (adelantada a petición del autor, tras la Fase 1)
+
+> Valida el diseño de la interfaz cuanto antes. No sustituye a T2.4 ni a T3.1: son sus primeras versiones, que se completan en sus fases.
+
+- [x] **RV.1** Marco del escritorio: pestañas de las 10 vistas (las no construidas muestran su título y `EN CONSTRUCCIÓN`), barra de estado con datos reales, teclas 1–9/0/F y Esc, táctil en pestañas, barrido al cambiar de vista. Se entra directamente tras el arranque (el acceso llega en T2.3). *(parte de T2.4)*
+- [x] **RV.2** V1 COLISIÓN, primera versión funcional con el `Estado` real: selector de pareja, globos con separación, regla de Δω, arcos rojos con proyectiles e impactos, desenlaces, estado en texto grande, paneles, minigráfica de Δω y versión vertical. *(parte de T3.1)*
+
+**Verificación:** revisión del autor con `?fecha=` 2026-10-19, 10-25, 10-27, 11-12, 11-20, 12-05 y 12-15.
 
 ## Fase 2 — Flujo de pantallas y escritorio
 
