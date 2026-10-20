@@ -4,6 +4,8 @@
 // en hostilidades. Zoom 1×–zoomMax (+/−, rueda, pellizco), desplazamiento (flechas, arrastre),
 // Inicio vuelve a la vista completa, Tab recorre las nombradas, A salta a la siguiente pareja activa,
 // tocar elige la rama más cercana y Enter abre su EXPEDIENTE. La cámara vive en ui.camara.
+// El 16/12 la silueta del Injertador ocupa el sustrato (más hondo) y tira de las ramas activas;
+// desde los vislumbres, a ratos aparece un trazo de un solo fotograma en el sustrato.
 (function (DENDRO) {
   "use strict";
 
@@ -20,6 +22,7 @@
   const VELOCIDAD_MISIL = 0.3;
   const PASO_DESPLAZAMIENTO = 0.12;                     // fracción de la ventana por pulsación
   const SUSTRATO = 0.075;                               // alto de la franja del Bulk bajo MYTH (normalizado)
+  const PROB_VISLUMBRE = 0.4;                           // por minuto
   const ANCHO_MINIMAPA = 16, ALTO_MINIMAPA = 8;
   const DESTRUIDAS = ["ANIQUILADA", "COLAPSO"];
 
@@ -28,14 +31,15 @@
     let estado = ctx.estado;
     const cat = DENDRO.multiverso.catalogo(), disp = DENDRO.multiverso.disposicion();
     const pos = disp.posiciones;
-    const lim = { minX: disp.limites.minX - 0.03, maxX: disp.limites.maxX + 0.03, minY: -SUSTRATO - 0.02, maxY: disp.limites.maxY + 0.03 };
+    const profundidad = () => (estado.silueta.visible ? DENDRO.silueta.SUSTRATO : SUSTRATO);
+    const lim = { minX: disp.limites.minX - 0.03, maxX: disp.limites.maxX + 0.03, minY: -profundidad() - 0.02, maxY: disp.limites.maxY + 0.03 };
     const nombradas = cat.nodos.filter((n) => n.nombrada).map((n) => n.codigo).sort((a, b) => pos[a].x - pos[b].x);
     const tronco = disp.segmentos.filter((s) => s.nivel <= 2);
     if (!ui.tierraSeleccionada || !pos[ui.tierraSeleccionada]) ui.tierraSeleccionada = C.parejaNombrada(estado).a;
     if (!ui.camara) ui.camara = vistaCompleta();
     const cam = ui.camara;
     let lienzo = null, hover = null, W = 0, H = 0, S = 1, aspecto = 0.5;
-    let colores = null;
+    let colores = null, objetivos = [], vislumbreVisto = -1;
 
     function vistaCompleta() { return { zoom: 1, x: (lim.minX + lim.maxX) / 2, y: (lim.minY + lim.maxY) / 2 }; }
 
@@ -61,6 +65,22 @@
         }
       }
       colores = { rampa, apagadas, fundidas };
+      lim.minY = -profundidad() - 0.02;
+      objetivos = estado.silueta.visible ? objetivosSilueta() : [];
+    }
+
+    // Ocho ramas de las que tira el Injertador: las de las parejas activas (repartidas) y, si faltan,
+    // las primarias. Se ordenan para que los orígenes de cada lado tiren de su lado.
+    function objetivosSilueta() {
+      const activas = [...new Set(estado.parejas.filter((p) => C.ACTIVOS.includes(p.estado)).flatMap((p) => [p.a, p.b]))].filter((c) => pos[c]).sort();
+      const elegidas = [];
+      for (let i = 0; i < 8 && activas.length; i++) elegidas.push(activas[Math.floor((i * activas.length) / 8)]);
+      for (const n of cat.nodos) if (elegidas.length < 8 && n.nivel === 1 && !elegidas.includes(n.codigo)) elegidas.push(n.codigo);
+      const porX = [...new Set(elegidas)].sort((a, b) => pos[a].x - pos[b].x);
+      const izq = porX.slice(0, Math.ceil(porX.length / 2)), der = porX.slice(Math.ceil(porX.length / 2)).reverse();
+      const orden = [];
+      for (let i = 0; i < 4; i++) orden.push(izq[i % izq.length], der[i % der.length] || izq[i % izq.length]);
+      return orden;
     }
     preparar();
 
@@ -111,6 +131,8 @@
       ajustar(v);
       sustrato(v);
       ramas(v);
+      silueta(v, ahora);
+      vislumbre(v);
       grietas(v, segundos);
       nodos(v, segundos);
       misiles(v, segundos);
@@ -120,16 +142,42 @@
     }
 
     function sustrato(v) {
-      const y1 = sy(-0.012), y2 = sy(-SUSTRATO);
+      const hondo = profundidad();
+      const y1 = sy(-0.012), y2 = sy(-hondo);
       if (y1 > H + 1 && y2 > H + 1) return;
       v.linea(0, y1, W, y1, "ambarTenue", { alfa: 0.5, discontinua: [1, 3] });
       v.linea(0, y2, W, y2, "ambarTenue", { alfa: 0.35, discontinua: [1, 5] });
-      const x = sx(0), y = sy(-SUSTRATO * 0.55), k = Math.min(1.6, 0.6 + cam.zoom * 0.15);
+      const x = sx(0), y = sy(-hondo * (estado.silueta.visible ? 0.9 : 0.55)), k = Math.min(1.6, 0.6 + cam.zoom * 0.15);
       // Estación Raíz: una plataforma con tres raíces hacia arriba, hacia MYTH.
       v.linea(x - 1.6 * k / aspecto, y, x + 1.6 * k / aspecto, y, "ambar", { grosor: 1.6 });
       for (const d of [-1, 0, 1]) v.linea(x + (d * 0.9 * k) / aspecto, y, x + (d * 0.3 * k) / aspecto, y - 0.9 * k, "ambar", { alfa: 0.8 });
       v.texto(x + (2.2 * k) / aspecto, y - 0.45, "ESTACIÓN RAÍZ", "ambar", { tam: 0.8, alfa: 0.8 });
       v.texto(1, y2 - 0.95, "SUSTRATO M11", "ambarTenue", { tam: 0.8 });
+    }
+
+    function silueta(v, ahora) {
+      if (!estado.silueta.visible) return;
+      const pies = -DENDRO.silueta.SUSTRATO * DENDRO.silueta.PIES, cabeza = -DENDRO.silueta.CABEZA_ARRIBA;
+      DENDRO.silueta.dibujar(v, {
+        x: sx(0), y: sy(pies), alto: (cabeza - pies) * S,
+        objetivos: objetivos.map((c) => [sx(pos[c].x), sy(pos[c].y)]),
+        opacidad: estado.silueta.opacidad, crecimiento: estado.silueta.opacidad,
+        ahora, reducido: ctx.reducido,
+      });
+    }
+
+    // Vislumbre: un trazo vertical blanco durante un solo fotograma, en un segundo sembrado del minuto.
+    function vislumbre(v) {
+      if (!estado.hitos.vislumbres || estado.silueta.visible || estado.fase >= 5) return;
+      const ms = DENDRO.reloj.ahora(), minuto = Math.floor(ms / DENDRO.reloj.MINUTO);
+      if (minuto === vislumbreVisto) return;
+      const rng = DENDRO.prng.crear("vislumbre", minuto);
+      if (rng() >= PROB_VISLUMBRE) { vislumbreVisto = minuto; return; }
+      const segundo = Math.floor(rng() * 60);
+      if (Math.floor((ms % DENDRO.reloj.MINUTO) / 1000) < segundo) return;
+      vislumbreVisto = minuto;
+      const x = sx((rng() - 0.5) * 0.5);
+      v.linea(x, sy(-0.014), x, sy(-SUSTRATO * 0.95), "rama", { grosor: 1.8 });
     }
 
     function ramas(v) {

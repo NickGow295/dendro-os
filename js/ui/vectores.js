@@ -5,7 +5,7 @@
   "use strict";
 
   const cfg = () => window.DENDRO_CONFIG;
-  const e = { contenedor: null, lienzo: null, ctx: null, ahora: 0, conContenido: false, sucio: true };
+  const e = { contenedor: null, lienzo: null, ctx: null, ahora: 0, conContenido: false, sucio: true, banda: null };
 
   function iniciar(contenedor) {
     e.contenedor = contenedor;
@@ -24,13 +24,34 @@
     e.sucio = true;
   }
 
-  // Limpia la capa para un fotograma nuevo.
+  // Limpia la capa para un fotograma nuevo; con un glitch activo, el fotograma entero tiembla.
   function comenzar(ahora) {
     e.ahora = ahora;
     e.ctx.setTransform(1, 0, 0, 1, 0, 0);
     e.ctx.clearRect(0, 0, e.lienzo.width, e.lienzo.height);
+    const t = DENDRO.glitch && DENDRO.glitch.temblor();
+    if (t) { const k = DENDRO.pantalla.info().escala; e.ctx.setTransform(1, 0, 0, 1, t.dx * k, t.dy * k); }
     e.conContenido = true;
     e.sucio = false;
+  }
+
+  // Tras dibujar: las bandas del glitch se cortan (se borran) o se desfasan en horizontal.
+  function posprocesar() {
+    const bandas = DENDRO.glitch ? DENDRO.glitch.bandas() : [];
+    if (!bandas.length) return;
+    const W = e.lienzo.width, H = e.lienzo.height, ctx = e.ctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    for (const b of bandas) {
+      const y = Math.floor(b.y * H), alto = Math.max(1, Math.ceil(b.alto * H));
+      if (b.corte) { ctx.clearRect(0, y, W, alto); continue; }
+      if (!e.banda) e.banda = document.createElement("canvas");
+      e.banda.width = W; e.banda.height = alto;
+      const bctx = e.banda.getContext("2d");
+      bctx.clearRect(0, 0, W, alto);
+      bctx.drawImage(e.lienzo, 0, y, W, alto, 0, 0, W, alto);
+      ctx.clearRect(0, y, W, alto);
+      ctx.drawImage(e.banda, Math.round(b.dx * W), y);
+    }
   }
 
   // Deja la capa vacía si había algo; devuelve true si cambió.
@@ -153,7 +174,7 @@
   }
 
   DENDRO.vectores = {
-    iniciar, redimensionar, comenzar, vaciar, contexto, puntoEnCurva,
+    iniciar, redimensionar, comenzar, posprocesar, vaciar, contexto, puntoEnCurva,
     marcarSucio: () => { e.sucio = true; },
     get sucio() { return e.sucio; },
     get lienzo() { return e.lienzo; },

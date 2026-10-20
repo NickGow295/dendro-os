@@ -90,6 +90,24 @@
     cambiar("apagado");
   }
 
+  // Colapso en vivo (RF-08): la imagen se contrae a una línea, cambia el contenido y se vuelve a abrir.
+  // El monitor sigue "encendido" todo el rato.
+  const CONTRAER_MS = 450, LINEA_MS = 500, ABRIR_MS = 700;
+  async function contraerYAbrir(enMedio) {
+    if (e.estado !== "encendido") { enMedio(); return; }
+    if (e.reducido) {
+      await animar(300, (t) => ({ sx: 1, sy: 1, haz: 0, calor: 1 - t, ondulacion: 0 }));
+      enMedio();
+      await animar(300, (t) => ({ sx: 1, sy: 1, haz: 0, calor: t, ondulacion: 0 }));
+      return;
+    }
+    await animar(CONTRAER_MS, (t) => ({ sx: 1, sy: mezclar(1, 0.004, suave(t)), haz: 1.4 * t, calor: 1 + 0.6 * t, ondulacion: 0 }));
+    enMedio();
+    await animar(LINEA_MS, (t) => ({ sx: mezclar(1, 0.7, Math.sin(Math.PI * t)), sy: 0.004, haz: 1.4, calor: 0.6, ondulacion: 0 }));
+    await animar(ABRIR_MS, (t) => ({ sx: 1, sy: mezclar(0.004, 1, suave(t)), haz: 1.4 * (1 - t), calor: 0.6 + 0.4 * t, ondulacion: 0.004 * (1 - t) }));
+    aplicar({ sx: 1, sy: 1, haz: 0, calor: 1, ondulacion: 0 });
+  }
+
   function iniciar({ raiz, tubo, haz, reducido }) {
     e.raiz = raiz; e.tubo = tubo; e.haz = haz; e.reducido = !!reducido;
     aplicar({ sx: 0, sy: 0, haz: 0, calor: 0, ondulacion: 0 });
@@ -97,7 +115,7 @@
   }
 
   DENDRO.monitor = {
-    iniciar, encender, apagar,
+    iniciar, encender, apagar, contraerYAbrir,
     estado: () => e.estado,
     alCambiar: (fn) => e.oyentes.push(fn),
   };

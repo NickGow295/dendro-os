@@ -6,7 +6,7 @@
 
   const cfg = () => window.DENDRO_CONFIG;
   const FUENTE = '"VT323 Local", "VT323", monospace';
-  const ATR = { INVERSO: 1, TENUE: 2, PARPADEO: 4 };
+  const ATR = { INVERSO: 1, TENUE: 2, PARPADEO: 4, TACHADO: 8 };
   const PERIODO_PARPADEO = 530;
   const ESPACIO = 32;
 
@@ -34,6 +34,7 @@
     origenX: 0, origenY: 0, celdaAncho: 0, celdaAlto: 0, tamFuente: 0, linea: 0, grosor: 1, hueco: 2,
     nombres: [], indice: {}, cacheCaracteres: new Map(),
     cursor: { x: 0, y: 0, visible: false }, fase: 1, oyentes: [],
+    perturbacion: new Map(), // fila → { apagada, desfase, caracter(x, cp) }: glitches de glitch.js, solo al dibujar
   };
 
   // ── Paleta ────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@
   function atributos(estilo) {
     if (!estilo) return 0;
     if (typeof estilo === "number") return estilo;
-    return (estilo.inverso ? ATR.INVERSO : 0) | (estilo.tenue ? ATR.TENUE : 0) | (estilo.parpadeo ? ATR.PARPADEO : 0);
+    return (estilo.inverso ? ATR.INVERSO : 0) | (estilo.tenue ? ATR.TENUE : 0) | (estilo.parpadeo ? ATR.PARPADEO : 0) | (estilo.tachado ? ATR.TACHADO : 0);
   }
   function largo(texto) { return Array.from(String(texto)).length; }
   function caracter(cp) {
@@ -250,9 +251,11 @@
       ctx.fillRect(izq, arr, der - izq, abj - arr);
       colorTinta = colorFondo;
     }
-    if (cp === ESPACIO || !visible) return;
+    if (!visible) return;
     ctx.globalAlpha = a & ATR.TENUE ? 0.55 : 1;
     relleno(colorTinta);
+    if (a & ATR.TACHADO) ctx.fillRect(izq, arr + Math.round(e.celdaAlto * 0.55), der - izq, e.grosor);
+    if (cp === ESPACIO) { ctx.globalAlpha = 1; return; }
     const ch = caracter(cp);
     const trazo = TRAZOS[ch];
     if (trazo) {
@@ -276,11 +279,14 @@
     ctx.fillRect(0, arr, e.ancho, e.celdaAlto);
     let conParpadeo = false;
     const fila = y * e.columnas;
+    const g = e.perturbacion.get(y);
+    if (g && g.apagada) return;
+    const desfase = g ? g.desfase : 0, sustituir = g && g.caracter;
     for (let x = 0; x < e.columnas; x++) {
       const i = fila + x, a = e.atr[i];
       if (a & ATR.PARPADEO) conParpadeo = true;
-      if (e.car[i] === ESPACIO && !(a & ATR.INVERSO)) continue;
-      dibujarCelda(x, y, e.car[i], colores[e.nombres[e.col[i]]], colores.fondo, a);
+      if (e.car[i] === ESPACIO && !(a & (ATR.INVERSO | ATR.TACHADO))) continue;
+      dibujarCelda(x + desfase, y, sustituir ? sustituir(x, e.car[i]) : e.car[i], colores[e.nombres[e.col[i]]], colores.fondo, a);
     }
     if (conParpadeo) e.filasConParpadeo.add(y); else e.filasConParpadeo.delete(y);
     const c = e.cursor;
@@ -355,6 +361,13 @@
     if (y >= 0 && y < e.filas) e.sucias[y] = 1;
   }
 
+  // Glitches de la fila (glitch.js): se redibujan las filas que entran o salen del mapa.
+  function perturbar(mapa) {
+    for (const y of e.perturbacion.keys()) if (y < e.filas) e.sucias[y] = 1;
+    for (const y of mapa.keys()) if (y < e.filas) e.sucias[y] = 1;
+    e.perturbacion = mapa;
+  }
+
   function leer(x, y) {
     if (x < 0 || y < 0 || x >= e.columnas || y >= e.filas) return null;
     const i = y * e.columnas + x;
@@ -398,9 +411,10 @@
     iniciar, redimensionar, renderizar, cargarFuente,
     raiz,
     escribir: (x, y, texto, color, estilo) => raiz().escribir(x, y, texto, color, estilo),
-    limpiar: () => { raiz().limpiar(); e.cursor.visible = false; },
+    // Al cambiar de pantalla se repinta todo: los acentos de la fila 0 sobresalen al margen superior.
+    limpiar: () => { raiz().limpiar(); e.cursor.visible = false; e.todoSucio = true; },
     region: (x, y, an, al) => crearRegion(x, y, an, al, null),
-    ponerCursor, ocultarCursor: () => ponerCursor(e.cursor.x, e.cursor.y, false),
+    perturbar, ponerCursor, ocultarCursor: () => ponerCursor(e.cursor.x, e.cursor.y, false),
     leer, textoPlano, puntoEn, celdaEn, largo,
     alRedimensionar: (fn) => e.oyentes.push(fn),
     fijarCalidad: (f) => { if (f !== e.calidad) { e.calidad = f; redimensionar(); } },

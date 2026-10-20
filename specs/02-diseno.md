@@ -65,7 +65,8 @@ dendro-os/
 │   │   ├── vectores.js     # capa vectorial: líneas, lotes, arcos, polígonos, texto grande (§7.3)
 │   │   ├── globo.js        # modelo y dibujo de los globos de alambre (§7.4), caché limitada
 │   │   ├── lista.js        # lista filtrable reutilizable (selector de parejas, objetivos)
-│   │   ├── monitor.js      # encendido / apagado del tubo (RF-11)
+│   │   ├── monitor.js      # encendido / apagado del tubo (RF-11) y contracción del colapso en vivo
+│   │   ├── silueta.js      # silueta del Injertador (ÁRBOL y epílogo del colapso)
 │   │   └── escritor.js     # consola desplazable + máquina de escribir
 │   ├── pantallas/
 │   │   ├── arranque.js     # RF-02
@@ -635,10 +636,10 @@ Además:
 - API pública (`DENDRO.pantalla`):
   - `raiz()`, `region(x, y, ancho, alto)`.
   - Por región: `escribir(x, y, texto, color, estilo)`, `centrar`, `derecha`, `rellenar`, `limpiar`, `caja(x, y, an, al, { titulo, doble, color })` (devuelve su interior como región), `region(...)` anidada con recorte, `desplazar(n)` y `vectores()` (§7.3).
-  - Generales: `ponerCursor`, `ocultarCursor`, `leer(x, y)`, `textoPlano()`.
+  - Generales: `ponerCursor`, `ocultarCursor`, `leer(x, y)`, `textoPlano()`, `perturbar(mapa)` (filas apagadas, desfasadas o con caracteres corruptos de `glitch.js`; solo cambia el dibujo, nunca el búfer ni `textoPlano()`).
   - Puntero: `puntoEn(clientX, clientY)` → `{ x, y }` en celdas con decimales, deshaciendo la curvatura del tubo. `celdaEn` es su versión entera.
   - `alRedimensionar(fn)`, `info()`.
-- Estilos: `{ inverso, tenue, parpadeo }`.
+- Estilos: `{ inverso, tenue, parpadeo, tachado }`.
 - Colores **por nombre** de `config.colores` (y de la rampa).
 - Los caracteres de caja y de bloque se dibujan con trazos propios para que unan sin huecos. Los glifos más anchos que la celda se comprimen.
 
@@ -659,7 +660,7 @@ Primitivas (modo inmediato, se llaman dentro de `vista.vectores(v, ahora)`):
 - `texto(x, y, texto, color, { tam, alinear })`: VT323 vectorial; `tam` en altos de celda.
 - `globo(cx, cy, r, rama, o)` (§7.4).
 
-Opciones comunes `o`: `{ grosor, alfa, discontinua: [a, b], relleno: color, rellenoAlfa }`. Colores **por nombre**, como en la rejilla. `glitch.js` puede envolver el contexto para añadir temblor, cortes y desfases según la intensidad (RF-07).
+Opciones comunes `o`: `{ grosor, alfa, discontinua: [a, b], relleno: color, rellenoAlfa }`. Colores **por nombre**, como en la rejilla. `glitch.js` añade temblor al fotograma (`comenzar`) y, tras dibujar, corta o desfasa bandas horizontales (`posprocesar`) según la intensidad (RF-07). Los episodios salen de un PRNG sembrado por franjas de 90 ms; con movimiento reducido no hay ninguno.
 
 ### 7.4 Globos (`globo.js`)
 

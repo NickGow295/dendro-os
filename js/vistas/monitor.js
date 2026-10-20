@@ -2,7 +2,8 @@
 // generadas activas en contacto, interferencia u hostilidades (globos creados al mostrarse). Al lado,
 // la gráfica logarítmica de ramas afectadas con la curva de N̂ de MYTH encima (caídas de los
 // guardianes marcadas con credencial) y, debajo, la historia de la pareja seleccionada. El valor
-// final y el τ del colapso salen como "???" corruptos hasta la fase CRÍTICO.
+// final y el τ del colapso salen como "???" corruptos hasta la fase CRÍTICO. Con el módulo caído
+// (02-diseno.md §4.3), a ratos las lecturas de estabilidad son erráticas.
 (function (DENDRO) {
   "use strict";
 
@@ -14,6 +15,9 @@
   const SUPERINDICES = "⁰¹²³⁴⁵⁶⁷⁸⁹";
   const EN_TRAMO = ["CONTACTO", "HOSTILIDADES", "INTERFERENCIA"];
   const PAGINAS = ["NOMBRADAS", "ACTIVAS"];
+  const FRANJA_ERRATICA_MS = 1500;
+  const PROB_ERRATICA = 0.35;        // franjas con lecturas erráticas
+  const PROB_CELDA_ERRATICA = 0.5;
 
   function crear(ctx) {
     const { ui } = ctx;
@@ -39,6 +43,15 @@
     function corrupto(texto, ahora) {
       const rng = DENDRO.prng.crear(estado.dia, "corrupto", Math.floor(ahora / 110));
       return Array.from(texto).map((c) => (rng() < 0.4 ? RUIDO_TEXTO[Math.floor(rng() * RUIDO_TEXTO.length)] : c)).join("");
+    }
+
+    // Con el módulo caído: en algunas franjas, algunas celdas leen una estabilidad al azar (sembrada).
+    function erratica(id, ahora) {
+      if (!estado.modulosCaidos.includes("monitor")) return null;
+      const franja = Math.floor(ahora / FRANJA_ERRATICA_MS);
+      if (DENDRO.prng.crear(estado.dia, "monitor-erratico", franja)() >= PROB_ERRATICA) return null;
+      const rng = DENDRO.prng.crear(estado.dia, "monitor-erratico", franja, id);
+      return rng() < PROB_CELDA_ERRATICA ? Math.floor(rng() * 101) : null;
     }
 
     function cabecera(reg) {
@@ -140,11 +153,13 @@
       for (const c of celdas) {
         const v = c.region.vectores();
         const marco = (color, o) => v.poligono([[0.2, 0.1], [c.ancho - 0.2, 0.1], [c.ancho - 0.2, c.alto - 0.1], [0.2, c.alto - 0.1]], color, o);
+        const falsa = erratica(c.id, ahora);
+        if (falsa !== null) v.texto(c.ancho - 0.5, 0.25, "ERR", "arma", { tam: 0.8, alinear: "right" });
         if (pagina === 0) {
           const t = C.tierra(estado, c.id);
           const r = Math.max(0.6, Math.min((c.alto - 2.6) / 2, (c.ancho * v.aspecto) / 2) * 0.86);
           v.globo(c.ancho / 2, (c.alto - 2) / 2, r, t, C.opcionesGlobo(estado, t, segundos));
-          C.barraEstabilidad(v, 1, c.alto - 0.8, c.ancho - 2, C.estabilidadMostrada(ui, t), 0.45);
+          C.barraEstabilidad(v, 1, c.alto - 0.8, c.ancho - 2, falsa !== null ? falsa : C.estabilidadMostrada(ui, t), 0.45);
           if (t.estado === "HOSTILIDADES") marco("arma", { alfa: 0.3 + 0.6 * pulso });
         } else {
           const par = C.pareja(estado, c.id), ta = C.tierra(estado, par.a), tb = C.tierra(estado, par.b);
@@ -152,7 +167,7 @@
           const d = (r / v.aspecto) * (0.9 + 0.9 * par.separacion);
           v.globo(c.ancho / 2 - d, (c.alto - 2) / 2, r, ta, C.opcionesGlobo(estado, ta, segundos));
           v.globo(c.ancho / 2 + d, (c.alto - 2) / 2, r, tb, C.opcionesGlobo(estado, tb, segundos));
-          C.barraEstabilidad(v, 1, c.alto - 0.8, c.ancho - 2, Math.min(ta.estabilidad, tb.estabilidad), 0.45);
+          C.barraEstabilidad(v, 1, c.alto - 0.8, c.ancho - 2, falsa !== null ? falsa : Math.min(ta.estabilidad, tb.estabilidad), 0.45);
           if (par.estado === "HOSTILIDADES") marco("arma", { alfa: 0.3 + 0.6 * pulso });
         }
         if (c.id === seleccionado()) marco("ambar", { grosor: window.DENDRO_CONFIG.vectores.grosorActivo });

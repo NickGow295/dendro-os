@@ -138,10 +138,12 @@
 
 ## Fase 9 — Degradación y colapso
 
-- [ ] **T9.1** `glitch.js`: corrupción de texto en la rejilla y temblor/cortes/desfases en la capa vectorial según `intensidad`; reloj τ irregular en la fase 4. *(RF-07, RF-14)*
-- [ ] **T9.2** Vistas caídas por umbral (`02-diseno.md §4.3`), tachadas en las pestañas. *(RF-07)*
-- [ ] **T9.3** Pantalla de colapso: al encender tras `tf` y **en vivo a las 14:00** (ráfaga de glitches → error fatal), con la secuencia de `04-lore.md §13` tras una tecla (Árbol desintegrándose en vectores; las ramas de la silueta, las últimas); franja ámbar con texto oscuro y cuerpo blanco; `{ramas}` desde config; terminal limitada a `comandosPermitidos`; τ desde el colapso. *(RF-08)*
-- [ ] **T9.4** Silueta del Injertador en el ÁRBOL el 16/12 y vislumbres desde el 12-06 (`04-lore.md §3.1`). *(RF-17)*
+- [x] **T9.1** `glitch.js`: corrupción de texto en la rejilla y temblor/cortes/desfases en la capa vectorial según `intensidad`; reloj τ irregular en la fase 4. *(RF-07, RF-14)*
+- [x] **T9.2** Vistas caídas por umbral (`02-diseno.md §4.3`), tachadas en las pestañas. *(RF-07)*
+- [x] **T9.3** Pantalla de colapso: al encender tras `tf` y **en vivo a las 14:00** (ráfaga de glitches → error fatal), con la secuencia de `04-lore.md §13` tras una tecla (Árbol desintegrándose en vectores; las ramas de la silueta, las últimas); franja ámbar con texto oscuro y cuerpo blanco; `{ramas}` desde config; terminal limitada a `comandosPermitidos`; τ desde el colapso. *(RF-08)*
+- [x] **T9.4** Silueta del Injertador en el ÁRBOL el 16/12 y vislumbres desde el 12-06 (`04-lore.md §3.1`). *(RF-17)*
+
+> Notas: los glitches solo cambian el dibujo (la rejilla los aplica al pintar las filas; la capa vectorial, al empezar y al terminar el fotograma), así que el espejo accesible y las pruebas leen el texto limpio. Las vistas caídas siguen abriéndose, degradadas: COMUNICACIONES pierde mensajes, MONITOR da lecturas erráticas a ratos (`ERR`) y CONTENCIÓN no tiene energía. Con la silueta, el sustrato del ÁRBOL es más hondo (0.45) para que la figura se lea; la Estación Raíz queda bajo sus pies. La silueta tira de ocho ramas de parejas activas (o primarias). El texto del error de `config.js` pasa a ser el de `04-lore.md §13`. Tras el colapso, `semilla` desbloquea el NEGRO y responde con el Estado Nulo; cualquier otra orden, `EL SUSTRATO NO RESPONDE.` Si las 14:00 llegan durante el encendido, el arranque desemboca en el colapso. Al cambiar de pantalla la rejilla se repinta entera (los acentos de la fila 0 dejaban restos en el margen).
 
 **Verificación:** recorrer `?fecha=` 2026-10-19, 10-20, 10-27, 11-15, 12-05, 12-15, 12-16T00:01, 12-16T13:58 (esperando al colapso), 12-16T14:00 y 12-25.
 

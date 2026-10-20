@@ -53,7 +53,7 @@
     };
   }
 
-  function crear({ estado: inicial, salir }) {
+  function crear({ estado: inicial, salir, reducido }) {
     const P = DENDRO.pantalla;
     let estado = inicial;
     // Estado de interfaz compartido entre vistas (no es cronología): selección, cámara del ÁRBOL y mejoras
@@ -68,6 +68,7 @@
       region: regionVista,
       abrir,
       salir: salir || (() => {}),
+      reducido: !!reducido,
       redibujar() { const reg = regionVista(); reg.limpiar(); if (activa) activa.dibujar(reg); DENDRO.vectores.marcarSucio(); },
     };
 
@@ -97,7 +98,9 @@
       let x = 1;
       for (const c of CATALOGO) {
         const texto = formato(c);
-        const fin = r.escribir(x, 0, texto, "ambar", c === entradaActiva ? null : { inverso: true });
+        // Las vistas caídas por umbral (02-diseno.md §4.3) se tachan; siguen abriéndose, degradadas.
+        const tachado = estado.modulosCaidos.includes(c.id);
+        const fin = r.escribir(x, 0, texto, "ambar", { inverso: c !== entradaActiva, tachado });
         pestanas.push({ desde: x, hasta: fin, id: c.id });
         x = fin + 1;
       }
@@ -114,8 +117,10 @@
       const ahora = DENDRO.reloj.ahora();
       let x = 1;
       const tramo = (texto, color, estilo) => { x = r.escribir(x, y, texto, color, estilo); x = r.escribir(x, y, " │ ", "ambarTenue"); };
+      // Desde la fase 4 el reloj τ es irregular (RF-14).
+      const tau = estado.fase === 4 ? DENDRO.glitch.relojIrregular(ahora) : DENDRO.tau.reloj(ahora);
       if (ancho) {
-        tramo(DENDRO.tau.reloj(ahora), "texto");
+        tramo(tau, "texto");
         tramo(`FASE ${estado.fase} ${estado.nombreFase}`, "ambar");
         tramo(` ALERTA ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
         tramo(`RAMAS ${formatoRamas(estado.ramasAfectadas)}`, "texto");
@@ -124,7 +129,7 @@
         r.derecha(y, `OPERADOR ${operador()} ` + (dir ? "      " : ""), "textoTenue");
         if (dir) r.derecha(y, " ◆DIR ", "ambar");
       } else {
-        tramo(DENDRO.tau.corto(ahora), "texto");
+        tramo(estado.fase === 4 ? tau.replace(/^τ |·.*$/g, "") : DENDRO.tau.corto(ahora), "texto");
         tramo(`F${estado.fase}`, "ambar");
         tramo(` ${estado.nivelAlerta} `, colorAlerta, estiloAlerta);
         tramo(formatoRamas(estado.ramasAfectadas), "texto");

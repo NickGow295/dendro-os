@@ -147,6 +147,7 @@ window.DENDRO_CONFIG = {
     },
     encendido: { duracionMs: 1400 },
     apagado:   { duracionMs: 700, resplandorMs: 2500 },
+    colapsoEnVivo: { rafagaMs: 2200 }, // glitches antes del error cuando el colapso llega con la página abierta
   },
 
   contencion: {
@@ -169,11 +170,12 @@ window.DENDRO_CONFIG = {
 
   colapso: {
     tituloError: "ERROR FATAL 0x0000DEAD",
-    mensajeError: [
-      "PÉRDIDA TOTAL DE COHESIÓN EN EL SUSTRATO M11",
+    mensajeError: [            // 04-lore.md §13; {ramas} se sustituye por ramasAfectadasFinal
+      "MYTH HA PERDIDO LA COHESIÓN · SUSTRATO M11 SIN SOPORTE",
       "",
       "  ramas afectadas ..... {ramas} / {ramas}",
-      "  firma del ancla ..... ω = NaN",
+      "  cohesión N̂ ......... 0.000",
+      "  firma en la base .... ω = 1.0000i",
       "  meta-tiempo τ ....... DETENIDO",
       "",
       "LA ESTACIÓN RAÍZ NO PUEDE MANTENER EL ÁRBOL.",

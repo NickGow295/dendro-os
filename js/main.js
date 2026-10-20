@@ -13,6 +13,8 @@
 
   let actual = null;
   let modo = "CSS";
+  let colapsando = false;     // ráfaga y contracción del colapso en vivo en curso
+  const tf = () => DENDRO.reloj.aInstante(cfg().cronologia.colapsoTotal);
 
   // ── Pantallas ─────────────────────────────────────────────────────────────
   function mostrar(pantalla) {
@@ -29,20 +31,52 @@
     mostrar(DENDRO.arranque.crear({ estado, alTerminar: irAcceso }));
   }
 
+  // Si el colapso llegó durante el encendido, el arranque desemboca en él.
   function irAcceso() {
+    if (estado.fase >= 5) { irColapso(); return; }
     mostrar(DENDRO.acceso.crear({ alTerminar: irEscritorio }));
   }
 
   function irEscritorio() {
-    mostrar(DENDRO.escritorio.crear({ estado, salir: () => DENDRO.monitor.apagar() }));
+    if (estado.fase >= 5) { irColapso(); return; }
+    mostrar(DENDRO.escritorio.crear({ estado, salir: () => DENDRO.monitor.apagar(), reducido: movimientoReducido }));
+  }
+
+  // Tras el colapso el tubo se calma: el error tiene que leerse (RNF-03).
+  function irColapso() {
+    DENDRO.glitch.calmar();
+    DENDRO.crt.fijarIntensidad(INTENSIDAD_TRAS_COLAPSO);
+    DENDRO.sonido.fijarIntensidad(INTENSIDAD_TRAS_COLAPSO);
+    mostrar(DENDRO.colapso.crear({ instanteColapso: tf(), reducido: movimientoReducido }));
+  }
+  const INTENSIDAD_TRAS_COLAPSO = 0.2;
+
+  function fijarIntensidad() {
+    if (estado.fase >= 5) return;
+    DENDRO.crt.fijarIntensidad(estado.intensidad);
+    DENDRO.sonido.fijarIntensidad(estado.intensidad);
+    DENDRO.glitch.fijarIntensidad(estado.intensidad);
   }
 
   function alCambiarMinuto(instante) {
     estado = DENDRO.cronologia.calcularEstado(instante);
-    DENDRO.crt.fijarIntensidad(estado.intensidad);
-    DENDRO.sonido.fijarIntensidad(estado.intensidad);
+    fijarIntensidad();
     if (panelDebug) panelDebug.textContent = textoDebug();
+    if (colapsando || (actual && actual.esColapso)) return;
     if (actual && actual.actualizar && DENDRO.monitor.estado() === "encendido") actual.actualizar(estado);
+  }
+
+  // RF-08 en vivo: a las 14:00, con la interfaz abierta, ráfaga de glitches, el tubo se contrae a una
+  // línea y se abre con el error fatal. Con el monitor apagado, el encendido ya entra en el colapso.
+  async function colapsoEnVivo() {
+    estado = DENDRO.cronologia.calcularEstado(DENDRO.reloj.instanteActual());
+    if (panelDebug) panelDebug.textContent = textoDebug();
+    if (colapsando || DENDRO.monitor.estado() !== "encendido" || (actual && actual.esColapso)) return;
+    colapsando = true;
+    DENDRO.sonido.alarma(3);
+    await DENDRO.glitch.rafaga(cfg().efectos.colapsoEnVivo.rafagaMs);
+    await DENDRO.monitor.contraerYAbrir(irColapso);
+    colapsando = false;
   }
 
   // ── Medidor de rendimiento y calidad adaptativa ───────────────────────────
@@ -81,11 +115,13 @@
   let cuadrosApagado = 0;
   function bucle(ahora) {
     const inicio = performance.now();
+    if (DENDRO.monitor.estado() !== "apagado" && DENDRO.glitch.actualizar(ahora)) DENDRO.vectores.marcarSucio();
     const cambio = DENDRO.pantalla.renderizar(ahora);
     let cambioVectores = false;
     if (actual && actual.vectores && (actual.animada || DENDRO.vectores.sucio)) {
       DENDRO.vectores.comenzar(ahora);
       actual.vectores(DENDRO.pantalla.raiz().vectores(), ahora);
+      DENDRO.vectores.posprocesar();
       cambioVectores = true;
     } else if (!actual || !actual.vectores) {
       cambioVectores = DENDRO.vectores.vaciar();
@@ -100,13 +136,14 @@
 
   // ── Entrada ───────────────────────────────────────────────────────────────
   function alternarEncendido() {
+    if (colapsando) return;
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") DENDRO.monitor.encender();
     else if (estado === "encendido") DENDRO.monitor.apagar();
   }
 
   function alTeclear(ev) {
-    if (DENDRO.teclado.ignorable(ev)) return;
+    if (DENDRO.teclado.ignorable(ev) || colapsando) return;
     // Los botones del marco se activan con Enter/Espacio por sí solos.
     if (ev.target && ev.target.closest && ev.target.closest("button") && (ev.key === "Enter" || ev.key === " ")) return;
     const estado = DENDRO.monitor.estado();
@@ -132,7 +169,7 @@
   function alPulsarPantalla(ev) {
     const estado = DENDRO.monitor.estado();
     if (estado === "apagado") { DENDRO.monitor.encender(); return; }
-    if (estado === "apagando" || !actual) return;
+    if (estado === "apagando" || !actual || colapsando) return;
     punteros.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, arrastre: false });
     if (conGestos()) {
       try { $("vidrio").setPointerCapture(ev.pointerId); } catch (_) { /* puntero ya liberado */ }
@@ -185,21 +222,23 @@
     actual.gesto({ tipo: "rueda", punto: DENDRO.pantalla.puntoEn(ev.clientX, ev.clientY), dy: ev.deltaY, factor: Math.exp(-ev.deltaY * 0.0015) });
   }
 
-  function alCambiarMonitor(estado) {
+  function alCambiarMonitor(estadoMonitor) {
     const boton = $("boton-encendido");
-    boton.setAttribute("aria-label", estado === "apagado" ? "Encender el monitor" : "Apagar el monitor");
-    boton.setAttribute("aria-pressed", String(estado !== "apagado"));
+    boton.setAttribute("aria-label", estadoMonitor === "apagado" ? "Encender el monitor" : "Apagar el monitor");
+    boton.setAttribute("aria-pressed", String(estadoMonitor !== "apagado"));
     // El contenido aparece mientras el fósforo se calienta, como en un tubo real.
-    if (estado === "encendiendo") {
+    if (estadoMonitor === "encendiendo") {
       DENDRO.sonido.encender();
-      irArranque();
+      estado = DENDRO.cronologia.calcularEstado(DENDRO.reloj.instanteActual());
+      if (estado.fase >= 5) irColapso();
+      else { fijarIntensidad(); irArranque(); }
     }
-    if (estado === "apagando") {
+    if (estadoMonitor === "apagando") {
       DENDRO.sonido.apagar();
       DENDRO.teclado.soltar();
       if (actual && actual.detener) actual.detener();
     }
-    if (estado === "apagado") mostrar(null);
+    if (estadoMonitor === "apagado") mostrar(null);
   }
 
   // ── Montaje ───────────────────────────────────────────────────────────────
@@ -247,9 +286,10 @@
   function iniciar() {
     DENDRO.tema.aplicar();
     rotular();
-    DENDRO.crt.fijarIntensidad(estado.intensidad);
-    DENDRO.sonido.fijarIntensidad(estado.intensidad);
+    DENDRO.glitch.iniciar({ reducido: movimientoReducido });
+    fijarIntensidad();
     DENDRO.reloj.alCambiarMinuto(alCambiarMinuto);
+    if (estado.fase < 5) DENDRO.reloj.alLlegar(tf(), colapsoEnVivo);
     DENDRO.teclado.iniciar($("entrada"));
     if (cfg().debug.mostrarPanelDebug || parametro("debug") === "1") mostrarPanelDebug();
     if (movimientoReducido) document.documentElement.classList.add("movimiento-reducido");
